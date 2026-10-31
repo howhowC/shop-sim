@@ -1,0 +1,103 @@
+// 存檔與讀檔。整個專案只有這個檔案可以碰 localStorage。
+//
+// ── 修改 GameState 結構時（新增、刪除、改名欄位）──
+// 1. 把 SAVE_VERSION 加 1
+// 2. 在 MIGRATIONS 加一個函式，把「舊版本的 state」轉成「新版本的 state」
+//    例如 SAVE_VERSION 從 1 改成 2，就加上 1: (old) => ({ ...old, newField: 預設值 })
+// 3. 如果新欄位是必要的，更新 looksLikeGameState() 的檢查
+// 4. 在 src/__tests__/save.test.ts 加一個舊版存檔能成功轉換的測試
+// 沒有對應轉換函式的舊存檔會被丟棄，玩家會開新遊戲。
+
+import type { GameState } from './core';
+
+export const SAVE_KEY = 'shop-sim:save';
+export const SAVE_VERSION = 1;
+
+interface SaveFile {
+  version: number;
+  savedAt: number;
+  state: unknown;
+}
+
+type Migration = (old: Record<string, unknown>) => Record<string, unknown>;
+
+/** key 是「舊版本號」，函式把它轉成「舊版本號 + 1」的格式 */
+const MIGRATIONS: Record<number, Migration> = {};
+
+// ── 純函式（不碰 localStorage，方便測試）──
+
+export function serialize(state: GameState, now: number): string {
+  const file: SaveFile = { version: SAVE_VERSION, savedAt: now, state: { ...state, events: [] } };
+  return JSON.stringify(file);
+}
+
+/** 解析存檔；格式不對、版本無法轉換時回傳 null */
+export function deserialize(
+  raw: string,
+  migrations: Record<number, Migration> = MIGRATIONS,
+  currentVersion: number = SAVE_VERSION,
+): GameState | null {
+  let file: SaveFile;
+  try {
+    file = JSON.parse(raw) as SaveFile;
+  } catch {
+    return null;
+  }
+  if (!isRecord(file) || typeof file.version !== 'number' || !isRecord(file.state)) return null;
+  if (file.version > currentVersion) return null; // 比程式還新的存檔，無法判讀
+
+  let state = file.state;
+  for (let v = file.version; v < currentVersion; v++) {
+    const migrate = migrations[v];
+    if (!migrate) return null;
+    state = migrate(state);
+  }
+  return looksLikeGameState(state) ? state : null;
+}
+
+function isRecord(x: unknown): x is Record<string, unknown> {
+  return typeof x === 'object' && x !== null && !Array.isArray(x);
+}
+
+/** 粗略檢查必要欄位的型別，避免壞掉的存檔讓畫面當掉 */
+function looksLikeGameState(s: Record<string, unknown>): s is Record<string, unknown> & GameState {
+  const numbers = ['day', 'money', 'rngState', 'nextOrderNo', 'nextUid'] as const;
+  const arrays = ['coupons', 'orders', 'inventory', 'events'] as const;
+  const records = ['prices', 'prevPrices', 'cart', 'job'] as const;
+  return (
+    numbers.every((k) => typeof s[k] === 'number' && Number.isFinite(s[k])) &&
+    arrays.every((k) => Array.isArray(s[k])) &&
+    records.every((k) => isRecord(s[k])) &&
+    (s.flashSale === null || isRecord(s.flashSale))
+  );
+}
+
+// ── localStorage 存取 ──
+// 無痕模式、空間已滿或瀏覽器封鎖網站資料時，localStorage 會丟出錯誤，所以全部包 try/catch。
+
+/** 回傳是否成功存檔 */
+export function saveGame(state: GameState): boolean {
+  try {
+    localStorage.setItem(SAVE_KEY, serialize(state, Date.now()));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function loadGame(): GameState | null {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    return raw === null ? null : deserialize(raw);
+  } catch {
+    return null;
+  }
+}
+
+export function clearSave(): void {
+  try {
+    localStorage.removeItem(SAVE_KEY);
+  } catch {
+    // 無法刪除也不影響開新遊戲
+  }
+}
