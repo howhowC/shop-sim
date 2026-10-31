@@ -6,9 +6,7 @@ A browser game about the joy of online shopping: browse a store whose prices cha
 
 **▶ Play:** https://howhowc.github.io/shop-sim/
 
-<!-- Screenshot: add docs/screenshot.png and uncomment
-![Screenshot](docs/screenshot.png)
--->
+![Screenshot of the store page](docs/screenshot.png)
 
 ## Features
 

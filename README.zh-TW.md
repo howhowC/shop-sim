@@ -6,9 +6,7 @@
 
 **▶ 立即遊玩：** https://howhowc.github.io/shop-sim/
 
-<!-- 截圖：放上 docs/screenshot.png 後取消註解
-![遊戲截圖](docs/screenshot.png)
--->
+![商城頁面截圖](docs/screenshot.png)
 
 ## 功能
 
