@@ -5,7 +5,7 @@ export { createInitialState, reducer, summarizeCart } from './reducer';
 export type { CartSummary } from './reducer';
 export { allProducts, getProduct } from './catalog';
 export { currentPrice, fillMissingPrices } from './market';
-export { getOrderStatus } from './orders';
+export { activeQty, getOrderStatus, isOrderCancelled, refundForOne, returnDaysLeft, shippedQty } from './orders';
 export { resalePrice } from './income/resale';
 export { CHECKIN_REWARDS, CHECKIN_DAY7_COUPON, STARTING_MONEY } from './config';
 export { canCheckIn, nextStreak } from './income/checkin';

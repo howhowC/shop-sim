@@ -6,6 +6,10 @@ export type Action =
   | { type: 'setCartQty'; productId: ProductId; qty: number }
   | { type: 'checkout'; couponId?: string }
   | { type: 'unboxOrder'; orderId: string }
+  /** 到貨前取消訂單裡的一件商品 */
+  | { type: 'cancelOrderItem'; orderId: string; productId: ProductId }
+  /** 鑑賞期內退回房間裡的一件物品 */
+  | { type: 'returnItem'; uid: number }
   | { type: 'sellItem'; uid: number }
   /** today 是玩家當地的現實日期 'YYYY-MM-DD'，由 UI 傳入，core 才能維持純函式 */
   | { type: 'checkIn'; today: string }

@@ -18,6 +18,10 @@ const REJECT_TEXT: Record<RejectReason, string> = {
   unknown_order: '找不到這筆訂單',
   order_not_delivered: '包裹還沒送達',
   order_already_opened: '這個包裹已經開過了',
+  order_already_delivered: '包裹已經送達，不能取消了；開箱後可以在鑑賞期內退貨',
+  order_cancelled: '這筆訂單已經全部取消了',
+  item_not_returnable: '這件商品不能退貨',
+  return_window_expired: '已經超過 7 天鑑賞期，不能退貨了',
   unknown_item: '找不到這件物品',
   already_checked_in_today: '今天已經簽到過了，明天再來',
   silk_unknown: '找不到這隻蠶寶寶',
@@ -57,13 +61,15 @@ export function eventText(ev: GameEvent): string {
     case 'packagesArrived':
       return `有 ${ev.orderIds.length} 個包裹送達，去訂單開箱吧`;
     case 'unboxed':
-      return `拿到了：${ev.productIds.map(productName).join('、')}`;
+      return ev.productIds.length > 0 ? `拿到了：${ev.productIds.map(productName).join('、')}` : '開箱完成（補差價不是實體商品）';
     case 'income':
       return INCOME_TEXT[ev.source](fmt(ev.amount));
     case 'couponReceived':
       return `獲得優惠券：滿 ${fmt(ev.coupon.minSpend)} 折 ${fmt(ev.coupon.discount)}`;
     case 'rejected':
       return REJECT_TEXT[ev.reason];
+    case 'refunded':
+      return `${ev.kind === 'cancel' ? '已取消' : '已退貨'}：${productName(ev.productId)}，退款 ${fmt(ev.amount)}`;
     case 'silkBought':
       return `買了 ${SILK_ITEM_NAME[ev.item]} ×${ev.qty}，付款 ${fmt(ev.total)}`;
     case 'silkHatched':

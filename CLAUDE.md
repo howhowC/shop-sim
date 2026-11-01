@@ -26,7 +26,7 @@ src/
     actions.ts          玩家能做的所有 action
     reducer.ts          (state, action) => newState；新遊戲 createInitialState(seed)
     market.ts           每日價格、限時特價、優惠券掉落
-    orders.ts           物流狀態（由日期推算）
+    orders.ts           物流狀態（由日期推算）、取消與退貨的退款計算（優惠券依比例分攤）
     inventory.ts        玩家擁有的物品
     silk.ts             養蠶小遊戲：買卵、餵食、摸摸、依現實日期成長（syncSilk）、放飛
     income/             收入來源（checkin.ts 每日簽到、resale.ts 轉賣、silk.ts 賣蠶繭）；都透過 earn() 入帳

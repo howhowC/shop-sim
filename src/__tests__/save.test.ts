@@ -91,6 +91,19 @@ describe('存檔', () => {
     expect(loaded.silk).toEqual({ worms: [], leaves: 0, dex: {} });
   });
 
+  it('v4 存檔轉換成 v5 時，房間裡的補差價會被移除，其他物品保留', () => {
+    const s = createInitialState(1);
+    const v4State = {
+      ...s,
+      inventory: [
+        { uid: 1, productId: 'price-diff', paidPrice: 1, acquiredDay: 1 },
+        { uid: 2, productId: 'sticker', paidPrice: 10, acquiredDay: 1 },
+      ],
+    };
+    const loaded = deserialize(JSON.stringify({ version: 4, savedAt: 0, state: v4State }))!;
+    expect(loaded.inventory.map((it) => it.productId)).toEqual(['sticker']);
+  });
+
   it('存檔裡沒有新商品的價格時，讀檔會補上', () => {
     const s = createInitialState(1);
     const { silkworm: _p, ...prices } = s.prices;

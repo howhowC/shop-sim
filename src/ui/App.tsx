@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { createInitialState, getOrderStatus, reducer } from '../core';
+import { createInitialState, getOrderStatus, isOrderCancelled, reducer } from '../core';
 import type { Action, GameState } from '../core';
 import { clearSave, loadGame, saveGame } from '../save';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -57,7 +57,7 @@ export default function App() {
     showToast('已開始新遊戲');
   };
 
-  const waitingToOpen = state.orders.some((o) => !o.opened && getOrderStatus(o, state.day) === 'delivered');
+  const waitingToOpen = state.orders.some((o) => !o.opened && !isOrderCancelled(o) && getOrderStatus(o, state.day) === 'delivered');
   const cartCount = Object.values(state.cart).reduce((a, b) => a + b, 0);
 
   return (
@@ -90,7 +90,7 @@ export default function App() {
           />
         )}
         {tab === 'cart' && <CartView state={state} act={act} onBrowse={() => setTab('shop')} />}
-        {tab === 'orders' && <OrdersView state={state} onUnbox={setUnboxing} />}
+        {tab === 'orders' && <OrdersView state={state} act={act} onUnbox={setUnboxing} />}
         {tab === 'room' && <RoomView state={state} />}
         {tab === 'resale' && <ResaleView state={state} act={act} />}
         {tab === 'checkin' && <CheckInView state={state} act={act} onSilk={() => setTab('silk')} />}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { getProduct } from '../core';
-import type { Order } from '../core';
+import { getProduct, shippedQty } from '../core';
+import type { Order, Product } from '../core';
 
 interface Props {
   order: Order;
@@ -16,7 +16,10 @@ export function UnboxModal({ order, onOpen, onClose, onBack }: Props) {
   const boxRef = useRef<HTMLDivElement>(null);
   useEffect(() => boxRef.current?.focus(), []);
 
-  const products = order.lines.map((l) => getProduct(l.productId)).filter((p) => p !== undefined);
+  const products = order.lines
+    .filter((l) => shippedQty(l) > 0)
+    .map((l) => getProduct(l.productId))
+    .filter((p): p is Product => p !== undefined && !p.virtual);
 
   const doOpen = () => {
     if (open) return;
@@ -49,7 +52,9 @@ export function UnboxModal({ order, onOpen, onClose, onBack }: Props) {
           <div className="flap l" />
           <div className="flap r" />
         </div>
-        <p className="muted">{open ? `拿到了：${products.map((p) => p.name).join('、')}` : '點一下紙箱開箱'}</p>
+        <p className="muted">
+          {!open ? '點一下紙箱開箱' : products.length > 0 ? `拿到了：${products.map((p) => p.name).join('、')}` : '裡面空空的：補差價不是實體商品'}
+        </p>
         <div className="actions">
           {open ? (
             <>

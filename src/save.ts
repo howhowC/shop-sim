@@ -12,7 +12,7 @@ import { fillMissingPrices } from './core';
 import type { GameState } from './core';
 
 export const SAVE_KEY = 'shop-sim:save';
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 interface SaveFile {
   version: number;
@@ -47,6 +47,13 @@ const MIGRATIONS: Record<number, Migration> = {
   2: (old) => renameProductIds(old, { 'silkworm-box': 'silkworm', 'dwarf-hamster': 'golden-hamster' }),
   // v4：新增養蠶小遊戲
   3: (old) => ({ ...old, silk: { worms: [], leaves: 0, dex: {} } }),
+  // v5：補差價改成虛擬商品，從房間移除已經開箱的補差價
+  4: (old) => ({
+    ...old,
+    inventory: Array.isArray(old.inventory)
+      ? old.inventory.filter((it) => !(isRecord(it) && it.productId === 'price-diff'))
+      : old.inventory,
+  }),
 };
 
 // ── 純函式（不碰 localStorage，方便測試）──

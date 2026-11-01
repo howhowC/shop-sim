@@ -14,6 +14,8 @@ export interface Product {
   limited?: boolean;
   /** 固定價格：價格永遠是 basePrice，不受每日波動和取整影響，也不會被抽中限時特價（例如 $1 補差價） */
   fixedPrice?: boolean;
+  /** 虛擬商品：可以下單、到貨前可以取消，但開箱後不會變成房間裡的物品（例如補差價） */
+  virtual?: boolean;
 }
 
 export interface FlashSale {
@@ -35,7 +37,12 @@ export interface Coupon {
 export interface OrderLine {
   productId: ProductId;
   unitPrice: Money;
+  /** 下單時的數量（取消、退貨後也不變，方便顯示紀錄） */
   qty: number;
+  /** 到貨前取消的件數；舊存檔沒有這個欄位，視為 0 */
+  cancelledQty?: number;
+  /** 開箱後退貨的件數；舊存檔沒有這個欄位，視為 0 */
+  returnedQty?: number;
 }
 
 export interface Order {
@@ -45,6 +52,8 @@ export interface Order {
   placedDay: number;
   deliveryDay: number;
   opened: boolean;
+  /** 開箱的遊戲日，用來計算鑑賞期；舊存檔沒有，代表不能退貨 */
+  openedDay?: number;
 }
 
 export type OrderStatus = 'placed' | 'shipped' | 'in_transit' | 'delivered';
@@ -54,6 +63,8 @@ export interface OwnedItem {
   productId: ProductId;
   paidPrice: Money;
   acquiredDay: number;
+  /** 來自哪一筆訂單（可以退貨時用）；舊存檔沒有，代表不能退貨 */
+  orderId?: string;
 }
 
 /** 每日簽到；依現實世界的日期，和遊戲內的 day 無關 */
@@ -125,6 +136,10 @@ export type RejectReason =
   | 'unknown_order'
   | 'order_not_delivered'
   | 'order_already_opened'
+  | 'order_already_delivered'
+  | 'order_cancelled'
+  | 'item_not_returnable'
+  | 'return_window_expired'
   | 'unknown_item'
   | 'already_checked_in_today'
   | 'silk_unknown'
@@ -145,6 +160,8 @@ export type GameEvent =
   | { type: 'income'; source: IncomeSource; amount: Money }
   | { type: 'couponReceived'; coupon: Coupon }
   | { type: 'rejected'; reason: RejectReason }
+  /** 退款不算收入，所以不走 earn() 的 income 事件 */
+  | { type: 'refunded'; kind: 'cancel' | 'return'; orderId: string; productId: ProductId; amount: Money }
   | { type: 'silkBought'; item: SilkShopItem; qty: number; total: Money }
   | { type: 'silkHatched'; uid: number; breed: SilkBreedId }
   | { type: 'silkGrew'; uids: number[] }

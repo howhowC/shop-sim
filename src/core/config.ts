@@ -29,6 +29,10 @@ export const COUPON_TEMPLATES: readonly { minSpend: number; discount: number }[]
 export const MIN_DELIVERY_DAYS = 2;
 export const MAX_DELIVERY_DAYS = 4;
 
+// ── 取消與退貨 ──
+/** 鑑賞期：開箱當天起算，第 openedDay + 這個天數 那天結束前都可以退貨（遊戲日） */
+export const RETURN_WINDOW_DAYS = 7;
+
 // ── 每日簽到（依現實日期，一天一次）──
 /** 連續簽到第 1～7 天的獎勵；第 8 天起從頭循環。斷簽會回到第 1 天 */
 export const CHECKIN_REWARDS: readonly number[] = [600, 700, 800, 900, 1000, 1100, 1500];

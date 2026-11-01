@@ -4,12 +4,12 @@ import { MAX_DELIVERY_DAYS, MIN_DELIVERY_DAYS, STARTING_MONEY, WELCOME_COUPON } 
 import { sellItem } from './income/resale';
 import { checkIn } from './income/checkin';
 import { sellSilkworm } from './income/silk';
-import { addFromOrder } from './inventory';
+import { addFromOrder, findItem, removeItem } from './inventory';
 import { currentPrice, maybeDropCoupon, rollFlashSale, rollPrices } from './market';
-import { formatOrderId, getOrderStatus } from './orders';
+import { activeQty, formatOrderId, getOrderStatus, isOrderCancelled, refundForOne, returnDaysLeft, shippedQty } from './orders';
 import { createRng } from './rng';
 import { buySilk, createSilkState, feedSilkworm, petSilkworm, releaseMoth, syncSilk, type SilkResult } from './silk';
-import type { Coupon, GameEvent, GameState, Money, OrderLine, RejectReason } from './types';
+import type { Coupon, GameEvent, GameState, Money, Order, OrderLine, RejectReason } from './types';
 
 export function createInitialState(seed: number): GameState {
   const rng = createRng(seed);
@@ -111,14 +111,55 @@ function unboxOrder(state: GameState, orderId: string): GameState {
   const order = state.orders.find((o) => o.id === orderId);
   if (!order) return reject(state, 'unknown_order');
   if (order.opened) return reject(state, 'order_already_opened');
+  if (isOrderCancelled(order)) return reject(state, 'order_cancelled');
   if (getOrderStatus(order, state.day) !== 'delivered') return reject(state, 'order_not_delivered');
 
-  const next = addFromOrder(state, order.lines);
+  const next = addFromOrder(state, order);
   return {
     ...next,
-    orders: state.orders.map((o) => (o.id === orderId ? { ...o, opened: true } : o)),
-    events: [{ type: 'unboxed', orderId, productIds: order.lines.map((l) => l.productId) }],
+    orders: state.orders.map((o) => (o.id === orderId ? { ...o, opened: true, openedDay: state.day } : o)),
+    events: [
+      {
+        type: 'unboxed',
+        orderId,
+        productIds: order.lines.filter((l) => shippedQty(l) > 0 && !getProduct(l.productId)?.virtual).map((l) => l.productId),
+      },
+    ],
   };
+}
+
+/** 把一筆訂單的某一項更新後放回 state，並退款 */
+function refund(state: GameState, order: Order, productId: string, kind: 'cancel' | 'return'): GameState {
+  const amount = refundForOne(order, productId);
+  const field = kind === 'cancel' ? 'cancelledQty' : 'returnedQty';
+  const lines = order.lines.map((l) => (l.productId === productId ? { ...l, [field]: (l[field] ?? 0) + 1 } : l));
+  return {
+    ...state,
+    money: state.money + amount,
+    orders: state.orders.map((o) => (o.id === order.id ? { ...o, lines } : o)),
+    events: [{ type: 'refunded', kind, orderId: order.id, productId, amount }],
+  };
+}
+
+/** 到貨前取消訂單裡的一件商品 */
+function cancelOrderItem(state: GameState, orderId: string, productId: string): GameState {
+  const order = state.orders.find((o) => o.id === orderId);
+  if (!order) return reject(state, 'unknown_order');
+  if (getOrderStatus(order, state.day) === 'delivered') return reject(state, 'order_already_delivered');
+  const line = order.lines.find((l) => l.productId === productId);
+  if (!line || activeQty(line) <= 0) return reject(state, 'item_not_returnable');
+  return refund(state, order, productId, 'cancel');
+}
+
+/** 鑑賞期內退回房間裡的一件物品 */
+function returnItem(state: GameState, uid: number): GameState {
+  const item = findItem(state, uid);
+  if (!item) return reject(state, 'unknown_item');
+  const order = item.orderId === undefined ? undefined : state.orders.find((o) => o.id === item.orderId);
+  const line = order?.lines.find((l) => l.productId === item.productId);
+  if (!order || !line || order.openedDay === undefined || activeQty(line) <= 0) return reject(state, 'item_not_returnable');
+  if (returnDaysLeft(order, state.day) === null) return reject(state, 'return_window_expired');
+  return refund(removeItem(state, uid), order, item.productId, 'return');
 }
 
 function nextDay(state: GameState): GameState {
@@ -133,7 +174,7 @@ function nextDay(state: GameState): GameState {
     events.push({ type: 'couponReceived', coupon: dropped });
   }
 
-  const arrived = state.orders.filter((o) => o.deliveryDay === day).map((o) => o.id);
+  const arrived = state.orders.filter((o) => o.deliveryDay === day && !isOrderCancelled(o)).map((o) => o.id);
   if (arrived.length > 0) events.push({ type: 'packagesArrived', orderIds: arrived });
 
   return {
@@ -169,6 +210,10 @@ export function reducer(state: GameState, action: Action): GameState {
       return checkout(state, action.couponId);
     case 'unboxOrder':
       return unboxOrder(state, action.orderId);
+    case 'cancelOrderItem':
+      return cancelOrderItem(state, action.orderId, action.productId);
+    case 'returnItem':
+      return returnItem(state, action.uid);
     case 'sellItem': {
       const r = sellItem(state, action.uid);
       return { ...r.state, events: r.events };
