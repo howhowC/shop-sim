@@ -10,7 +10,7 @@ describe('rollPrices', () => {
     const rng = createRng(3);
     for (let day = 1; day <= 30; day++) {
       const prices = rollPrices(day, rng);
-      for (const p of allProducts().filter((p) => !p.limited)) {
+      for (const p of allProducts().filter((p) => !p.limited && !p.fixedPrice)) {
         const price = prices[p.id];
         expect(price % 10).toBe(0);
         expect(price).toBeGreaterThanOrEqual(p.basePrice * (1 - DAILY_SWING) - 5);

@@ -29,4 +29,6 @@ export const PRODUCTS: readonly Product[] = [
   { id: 'sunflower-seeds', name: '黃金鼠專用 葵花籽 300g', category: '寵物', icon: '🌻', basePrice: 50 },
   { id: 'hamster-wheel', name: '靜音滾輪 21cm', category: '寵物', icon: '🎡', basePrice: 230 },
   { id: 'rift-points', name: '峽谷對戰 點數卡 1000 點', category: '點數', icon: '💎', basePrice: 590 },
+  { id: 'sticker', name: '可愛貼紙 一張', category: '其他', icon: '🏷️', basePrice: 10 },
+  { id: 'price-diff', name: '萬能連接（補差價用）', category: '其他', icon: '🔗', basePrice: 1, fixedPrice: true },
 ];

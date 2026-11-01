@@ -46,6 +46,23 @@ describe('結帳', () => {
     expect(s.events).toEqual([{ type: 'rejected', reason: 'empty_cart' }]);
   });
 
+  it('固定價格商品每天都是原價、不會被抽中限時特價，可以用來湊優惠券門檻', () => {
+    const fixed = allProducts().find((p) => p.fixedPrice)!;
+    let s = createInitialState(1);
+    for (let i = 0; i < 30; i++) {
+      expect(s.prices[fixed.id]).toBe(fixed.basePrice);
+      expect(s.flashSale?.productId).not.toBe(fixed.id);
+      s = run(s, { type: 'nextDay' });
+    }
+
+    // 只買固定價格商品，剛好湊到開局優惠券門檻
+    const { minSpend, discount } = WELCOME_COUPON;
+    const s0 = createInitialState(1);
+    const qty = minSpend / fixed.basePrice;
+    const paid = run(s0, { type: 'addToCart', productId: fixed.id, qty }, { type: 'checkout', couponId: 'welcome' });
+    expect(paid.money).toBe(STARTING_MONEY - (minSpend - discount));
+  });
+
   it('錢不夠不能結帳，狀態不變', () => {
     const s0 = createInitialState(1);
     const s = run(s0, ...times(20, { type: 'addToCart', productId: 'cloud-chair' }), { type: 'checkout' });

@@ -2,7 +2,7 @@
 export type Money = number;
 export type ProductId = string;
 
-export type Category = '3C' | '居家' | '服飾' | '美妝' | '收藏' | '寵物' | '點數';
+export type Category = '3C' | '居家' | '服飾' | '美妝' | '收藏' | '寵物' | '點數' | '其他';
 
 export interface Product {
   id: ProductId;
@@ -12,6 +12,8 @@ export interface Product {
   basePrice: Money;
   /** 限量品：新品價格會逐日上漲，二手價高於新品價 */
   limited?: boolean;
+  /** 固定價格：價格永遠是 basePrice，不受每日波動和取整影響，也不會被抽中限時特價（例如 $1 補差價） */
+  fixedPrice?: boolean;
 }
 
 export interface FlashSale {

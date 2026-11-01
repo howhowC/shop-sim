@@ -19,6 +19,10 @@ function trendPrice(p: Product, day: number): number {
 export function rollPrices(day: number, rng: Rng): Record<ProductId, Money> {
   const prices: Record<ProductId, Money> = {};
   for (const p of allProducts()) {
+    if (p.fixedPrice) {
+      prices[p.id] = p.basePrice;
+      continue;
+    }
     const swing = 1 - DAILY_SWING + rng.next() * DAILY_SWING * 2;
     prices[p.id] = Math.max(10, round10(trendPrice(p, day) * swing));
   }
@@ -35,14 +39,14 @@ export function fillMissingPrices(state: GameState): GameState {
   const prices = { ...state.prices };
   const prevPrices = { ...state.prevPrices };
   for (const p of missing) {
-    prices[p.id] = Math.max(10, round10(trendPrice(p, state.day)));
+    prices[p.id] = p.fixedPrice ? p.basePrice : Math.max(10, round10(trendPrice(p, state.day)));
     prevPrices[p.id] ??= prices[p.id];
   }
   return { ...state, prices, prevPrices };
 }
 
 export function rollFlashSale(day: number, rng: Rng): FlashSale {
-  const product = rng.pick(allProducts());
+  const product = rng.pick(allProducts().filter((p) => !p.fixedPrice));
   return { productId: product.id, discountPercent: rng.pick(FLASH_SALE_DISCOUNTS), endsDay: day };
 }
 
