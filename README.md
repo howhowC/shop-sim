@@ -2,7 +2,7 @@
 
 **English** | [繁體中文](README.zh-TW.md)
 
-A browser game about the joy of online shopping: browse a store whose prices change every day, grab flash sales, check out, track your parcels, unbox them, and fill your room with everything you bought. Earn pocket money with a daily check-in or by reselling what you own.
+A browser game about the joy of online shopping: browse a store whose prices change every day, grab flash sales, check out, track your parcels, unbox them, and fill your room with everything you bought. Earn pocket money with a daily check-in, by reselling what you own, or by raising silkworms in a cozy mini-game.
 
 **▶ Play:** https://howhowc.github.io/shop-sim/
 
@@ -14,9 +14,21 @@ A browser game about the joy of online shopping: browse a store whose prices cha
 - **Realistic order flow**: cart → coupon → checkout → *placed → shipped → in transit → delivered* (2–4 days).
 - **Unboxing**: delivered parcels are opened with an animation, and the items go into your room.
 - **My room**: shelves that fill up as your collection grows.
-- **Earning money**: a daily check-in tied to the real-world date, with bigger rewards for longer streaks; a second-hand market where limited editions gain value the longer you hold them.
+- **Earning money**: a daily check-in tied to the real-world date, with bigger rewards for longer streaks; a second-hand market where limited editions gain value the longer you hold them; a silkworm-raising mini-game (see below).
 - **Auto-save**: progress is saved in the browser after every action, with versioned save files.
 - Light and dark themes, phone-friendly layout.
+
+## Mini-game: Silkworm Raising
+
+A cute, low-pressure pet-raising game in its own tab. It shares your wallet with the store, so the cocoons you sell become shopping money.
+
+- **Life cycle**: egg → 1st–5th instar → cocoon → moth, about 8 real-world days per silkworm.
+- **Daily care**: feed one mulberry leaf a day and the silkworm grows one stage the next day. Forget a day and it simply waits; nothing ever dies.
+- **Affection**: feeding and petting raise affection, which decides the cocoon's quality (normal / good / great) and its price.
+- **10 fictional breeds** across four rarities, from the plain 白玉蠶 to the legendary 星空蠶, plus silkworms wearing bunny or hamster hats. The breed is drawn when you buy the egg and revealed when it hatches; premium eggs have better odds.
+- **Sell or collect**: sell larvae or cocoons for money, or let a cocoon become a moth to complete its collection-book entry (moths can only be released, not sold).
+- **Collection book**: each breed records whether you have hatched it and raised it into a moth; undiscovered breeds show as silhouettes.
+- All silkworm art is generated SVG; a breed is just a set of colours, a pattern and an optional hat.
 
 ## Tech stack
 
@@ -31,7 +43,7 @@ flowchart LR
   UI["React UI<br/>src/ui"] -- "Action" --> R["reducer<br/>src/core"]
   R -- "new GameState + events" --> UI
   UI -- "save / load" --> S["save.ts<br/>localStorage"]
-  R --> M["market · orders<br/>income · inventory"]
+  R --> M["market · orders · silk<br/>income · inventory"]
   M --> C["config.ts<br/>game balance"]
 ```
 
@@ -46,6 +58,7 @@ Key design decisions:
 | All balance numbers live in `config.ts` | Difficulty can be tuned in one file |
 | Save files carry a version number plus migration functions | Changing the state shape later doesn't wipe players' progress |
 | Order status is derived from dates, not stored | No state to keep in sync, so it can't drift |
+| Real-world dates (check-in, silkworm growth) are passed in by the UI | The core stays pure and deterministic, so day-by-day growth is unit-tested without faking the clock |
 
 ## Getting started
 
@@ -70,14 +83,16 @@ npm run dev        # http://localhost:5173
 src/
   core/        game logic (pure TypeScript) + unit tests
     config.ts  all game balance numbers
-  data/        product catalog (fictional brands)
+  data/        product catalog and silkworm breeds (all fictional)
   ui/          React components and styles
   save.ts      versioned save / load (localStorage)
 ```
 
 ## Roadmap
 
-- [ ] Mini-games as another income source
+- [x] Mini-game: silkworm raising
+- [ ] Silkworm v2: achievements, habitat decorations, moths laying eggs
+- [ ] More mini-games
 - [ ] Shopping festival events (site-wide sales)
 - [ ] Collection achievements
 - [ ] Seller mode
