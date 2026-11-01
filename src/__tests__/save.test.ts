@@ -61,13 +61,35 @@ describe('存檔', () => {
     expect(loaded).not.toHaveProperty('job');
   });
 
+  it('v2 存檔的舊商品 id 會改成新 id（購物車、價格、特價、訂單、房間）', () => {
+    const s = createInitialState(1);
+    const toOld = (id: string) => ({ silkworm: 'silkworm-box', 'golden-hamster': 'dwarf-hamster' })[id] ?? id;
+    const renameKeys = (r: Record<string, number>) => Object.fromEntries(Object.entries(r).map(([k, v]) => [toOld(k), v]));
+    const v2State = {
+      ...s,
+      cart: { 'silkworm-box': 2 },
+      prices: renameKeys(s.prices),
+      prevPrices: renameKeys(s.prevPrices),
+      flashSale: { productId: 'dwarf-hamster', discountPercent: 30, endsDay: 1 },
+      orders: [{ id: 'A1', lines: [{ productId: 'dwarf-hamster', unitPrice: 210, qty: 1 }], total: 210, placedDay: 1, deliveryDay: 3, opened: false }],
+      inventory: [{ uid: 1, productId: 'silkworm-box', paidPrice: 90, acquiredDay: 1 }],
+    };
+    const loaded = deserialize(JSON.stringify({ version: 2, savedAt: 0, state: v2State }))!;
+    expect(loaded.cart).toEqual({ silkworm: 2 });
+    expect(loaded.prices).toEqual(s.prices);
+    expect(loaded.prevPrices).toEqual(s.prevPrices);
+    expect(loaded.flashSale?.productId).toBe('golden-hamster');
+    expect(loaded.orders[0].lines[0].productId).toBe('golden-hamster');
+    expect(loaded.inventory[0].productId).toBe('silkworm');
+  });
+
   it('存檔裡沒有新商品的價格時，讀檔會補上', () => {
     const s = createInitialState(1);
-    const { 'silkworm-box': _p, ...prices } = s.prices;
-    const { 'silkworm-box': _q, ...prevPrices } = s.prevPrices;
+    const { silkworm: _p, ...prices } = s.prices;
+    const { silkworm: _q, ...prevPrices } = s.prevPrices;
     const loaded = deserialize(serialize({ ...s, prices, prevPrices }, 0))!;
-    expect(loaded.prices['silkworm-box']).toBeGreaterThan(0);
-    expect(loaded.prevPrices['silkworm-box']).toBe(loaded.prices['silkworm-box']);
+    expect(loaded.prices.silkworm).toBeGreaterThan(0);
+    expect(loaded.prevPrices.silkworm).toBe(loaded.prices.silkworm);
     expect(loaded.prices['kb-87']).toBe(s.prices['kb-87']); // 原本就有的價格不變
   });
 

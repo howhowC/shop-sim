@@ -12,7 +12,7 @@ import { fillMissingPrices } from './core';
 import type { GameState } from './core';
 
 export const SAVE_KEY = 'shop-sim:save';
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 interface SaveFile {
   version: number;
@@ -22,10 +22,29 @@ interface SaveFile {
 
 type Migration = (old: Record<string, unknown>) => Record<string, unknown>;
 
+/** 把存檔裡所有出現商品 id 的地方換成新 id（購物車、價格、限時特價、訂單、房間物品） */
+function renameProductIds(old: Record<string, unknown>, renames: Record<string, string>): Record<string, unknown> {
+  const id = (x: unknown) => (typeof x === 'string' && x in renames ? renames[x] : x);
+  const keys = (r: unknown) => (isRecord(r) ? Object.fromEntries(Object.entries(r).map(([k, v]) => [id(k), v])) : r);
+  const withId = (x: unknown) => (isRecord(x) ? { ...x, productId: id(x.productId) } : x);
+  const list = (a: unknown, f: (x: unknown) => unknown) => (Array.isArray(a) ? a.map(f) : a);
+  return {
+    ...old,
+    cart: keys(old.cart),
+    prices: keys(old.prices),
+    prevPrices: keys(old.prevPrices),
+    flashSale: withId(old.flashSale),
+    inventory: list(old.inventory, withId),
+    orders: list(old.orders, (o) => (isRecord(o) ? { ...o, lines: list(o.lines, withId) } : o)),
+  };
+}
+
 /** key 是「舊版本號」，函式把它轉成「舊版本號 + 1」的格式 */
 const MIGRATIONS: Record<number, Migration> = {
   // v2：「上班」改成依現實日期的「每日簽到」
   1: ({ job: _job, ...rest }) => ({ ...rest, checkIn: { lastDate: null, streak: 0 } }),
+  // v3：商品 id 改名，讓 id 和商品名稱一致
+  2: (old) => renameProductIds(old, { 'silkworm-box': 'silkworm', 'dwarf-hamster': 'golden-hamster' }),
 };
 
 // ── 純函式（不碰 localStorage，方便測試）──
