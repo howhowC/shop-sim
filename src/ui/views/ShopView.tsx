@@ -2,7 +2,7 @@ import { allProducts, currentPrice, getProduct } from '../../core';
 import type { Category, GameState, Product } from '../../core';
 import { fmt } from '../format';
 
-const CATEGORIES: readonly ('全部' | Category)[] = ['全部', '3C', '居家', '服飾', '美妝', '收藏'];
+const CATEGORIES: readonly ('全部' | Category)[] = ['全部', '3C', '居家', '服飾', '美妝', '收藏', '寵物', '點數'];
 
 interface Props {
   state: GameState;

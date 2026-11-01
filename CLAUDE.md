@@ -70,6 +70,7 @@ src/
 
 ### 新增商品
 在 `src/data/products.ts` 加一筆。`id` 用英文 kebab-case 而且不能重複；`category` 必須是 `types.ts` 裡 `Category` 的其中一個。
+新增分類時，`types.ts` 的 `Category` 和 `ui/views/ShopView.tsx` 的 `CATEGORIES` 兩邊都要加。
 
 ### 新增玩家行為（action）
 1. `actions.ts`：在 `Action` 聯集加一個型別

@@ -2,7 +2,7 @@
 export type Money = number;
 export type ProductId = string;
 
-export type Category = '3C' | '居家' | '服飾' | '美妝' | '收藏';
+export type Category = '3C' | '居家' | '服飾' | '美妝' | '收藏' | '寵物' | '點數';
 
 export interface Product {
   id: ProductId;
