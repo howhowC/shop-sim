@@ -2,7 +2,7 @@
 
 **English** | [繁體中文](README.zh-TW.md)
 
-A browser game about the joy of online shopping: browse a store whose prices change every day, grab flash sales, check out, track your parcels, unbox them, and fill your room with everything you bought. Earn money by going to work or by reselling what you own.
+A browser game about the joy of online shopping: browse a store whose prices change every day, grab flash sales, check out, track your parcels, unbox them, and fill your room with everything you bought. Earn pocket money with a daily check-in or by reselling what you own.
 
 **▶ Play:** https://howhowc.github.io/shop-sim/
 
@@ -14,7 +14,7 @@ A browser game about the joy of online shopping: browse a store whose prices cha
 - **Realistic order flow**: cart → coupon → checkout → *placed → shipped → in transit → delivered* (2–4 days).
 - **Unboxing**: delivered parcels are opened with an animation, and the items go into your room.
 - **My room**: shelves that fill up as your collection grows.
-- **Earning money**: daily salary with promotions; a second-hand market where limited editions gain value the longer you hold them.
+- **Earning money**: a daily check-in tied to the real-world date, with bigger rewards for longer streaks; a second-hand market where limited editions gain value the longer you hold them.
 - **Auto-save**: progress is saved in the browser after every action, with versioned save files.
 - Light and dark themes, phone-friendly layout.
 
@@ -77,7 +77,7 @@ src/
 
 ## Roadmap
 
-- [ ] Mini-game part-time jobs as another income source
+- [ ] Mini-games as another income source
 - [ ] Shopping festival events (site-wide sales)
 - [ ] Collection achievements
 - [ ] Seller mode

@@ -54,16 +54,16 @@ export interface OwnedItem {
   acquiredDay: number;
 }
 
-export interface JobState {
-  /** JOBS 陣列的索引 */
-  level: number;
-  /** 目前職位已上班的天數，達到門檻就升職 */
-  daysAtLevel: number;
-  workedToday: boolean;
+/** 每日簽到；依現實世界的日期，和遊戲內的 day 無關 */
+export interface CheckInState {
+  /** 最近一次簽到的當地日期，格式 'YYYY-MM-DD'；從沒簽過是 null */
+  lastDate: string | null;
+  /** 連續簽到天數 */
+  streak: number;
 }
 
-/** 收入來源。之後加入小遊戲打工時，在這裡新增 'minigame'。 */
-export type IncomeSource = 'salary' | 'resale';
+/** 收入來源。之後加入小遊戲時，在這裡新增 'minigame'。 */
+export type IncomeSource = 'checkIn' | 'resale';
 
 export type RejectReason =
   | 'unknown_product'
@@ -75,14 +75,13 @@ export type RejectReason =
   | 'order_not_delivered'
   | 'order_already_opened'
   | 'unknown_item'
-  | 'already_worked_today';
+  | 'already_checked_in_today';
 
 export type GameEvent =
   | { type: 'orderPlaced'; orderId: string; total: Money }
   | { type: 'packagesArrived'; orderIds: string[] }
   | { type: 'unboxed'; orderId: string; productIds: ProductId[] }
   | { type: 'income'; source: IncomeSource; amount: Money }
-  | { type: 'promoted'; level: number }
   | { type: 'couponReceived'; coupon: Coupon }
   | { type: 'rejected'; reason: RejectReason };
 
@@ -100,7 +99,7 @@ export interface GameState {
   cart: Record<ProductId, number>;
   orders: Order[];
   inventory: OwnedItem[];
-  job: JobState;
+  checkIn: CheckInState;
   nextOrderNo: number;
   nextUid: number;
   /** 最近一次 action 產生的事件，給 UI 顯示通知用 */

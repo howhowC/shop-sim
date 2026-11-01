@@ -7,4 +7,5 @@ export { allProducts, getProduct } from './catalog';
 export { currentPrice } from './market';
 export { getOrderStatus } from './orders';
 export { resalePrice } from './income/resale';
-export { JOBS, DAYS_TO_PROMOTE, STARTING_MONEY } from './config';
+export { CHECKIN_REWARDS, CHECKIN_DAY7_COUPON, STARTING_MONEY } from './config';
+export { canCheckIn, nextStreak } from './income/checkin';

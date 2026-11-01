@@ -141,8 +141,11 @@ nav.tabs { border-top: 1px solid var(--line); }
 
 /* work */
 .job { display: flex; flex-direction: column; gap: 12px; }
-.bar { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin-top: 4px; }
-.bar span { display: block; height: 100%; background: var(--accent); }
+.checkin-days { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 8px; }
+.checkin-days li { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface-2); }
+.checkin-days li.done { opacity: 0.55; }
+.checkin-days li.done::after { content: '✓'; color: var(--good); font-weight: 700; }
+.checkin-days li.today { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
 .locked { opacity: .6; border-style: dashed; }
 
 /* unbox modal */

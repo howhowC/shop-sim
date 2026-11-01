@@ -1,7 +1,7 @@
 # shop-sim — 網購模擬器
 
-讓玩家滿足網購慾望的網頁遊戲：逛商城、下單、等到貨、開箱、收藏、轉賣、上班賺錢。
-目前只有買家模式；之後可能加入賣家模式、小遊戲打工、購物節大促、排行榜。
+讓玩家滿足網購慾望的網頁遊戲：逛商城、下單、等到貨、開箱、收藏、轉賣、每日簽到領零用錢。
+目前只有買家模式；之後可能加入賣家模式、小遊戲賺外快（可能有養蠶玩法）、購物節大促、排行榜。
 
 ## 指令
 | 指令 | 用途 |
@@ -21,14 +21,14 @@ TypeScript + React + Vite、Vitest。沒有後端，存檔放在 localStorage。
 ```
 src/
   core/                 遊戲邏輯（純 TypeScript）
-    config.ts           ★ 所有遊戲數值（價格波動、薪水、到貨天數…）
+    config.ts           ★ 所有遊戲數值（價格波動、簽到獎勵、到貨天數…）
     types.ts            型別：GameState、Order、GameEvent、RejectReason…
     actions.ts          玩家能做的所有 action
     reducer.ts          (state, action) => newState；新遊戲 createInitialState(seed)
     market.ts           每日價格、限時特價、優惠券掉落
     orders.ts           物流狀態（由日期推算）
     inventory.ts        玩家擁有的物品
-    income/             收入來源；都透過 earn() 入帳
+    income/             收入來源（checkin.ts 每日簽到、resale.ts 轉賣）；都透過 earn() 入帳
     catalog.ts          查詢商品資料
     rng.ts              seeded 亂數
     index.ts            core 對外的唯一出口
@@ -46,7 +46,7 @@ src/
 ```
 
 ## 架構規則（必須遵守）
-- **`src/core/` 不能 import React 或瀏覽器 API**（localStorage、window、Date.now 等）。需要的值由 UI 傳入，例如 seed。
+- **`src/core/` 不能 import React 或瀏覽器 API**（localStorage、window、Date.now 等）。需要的值由 UI 傳入，例如 seed、簽到用的當地日期。
 - **遊戲數值一律放在 `src/core/config.ts`**，不要把數字寫死在邏輯裡。新增數值時加上中文註解說明單位和意義。
 - **所有遊戲狀態的改變都要經過 action → reducer**；state 不可直接修改（immutable，用展開運算子建立新物件）。
 - **亂數只能用 `rng.ts`**，不要呼叫 `Math.random()`，這樣同一個 seed 的結果才能重現與測試。
@@ -79,7 +79,7 @@ src/
 4. 在 `__tests__/` 加測試
 5. UI 透過 `act({ type: '...' })` 呼叫
 
-### 新增收入來源（例如小遊戲打工）
+### 新增收入來源（例如小遊戲）
 1. `types.ts`：在 `IncomeSource` 加上新名稱
 2. `income/` 新增檔案，計算金額後呼叫 `earn(state, source, amount)`
 3. 照上面「新增玩家行為」的步驟加 action

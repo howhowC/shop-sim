@@ -2,7 +2,7 @@ import type { Action } from './actions';
 import { getProduct } from './catalog';
 import { MAX_DELIVERY_DAYS, MIN_DELIVERY_DAYS, STARTING_MONEY, WELCOME_COUPON } from './config';
 import { sellItem } from './income/resale';
-import { work } from './income/salary';
+import { checkIn } from './income/checkin';
 import { addFromOrder } from './inventory';
 import { currentPrice, maybeDropCoupon, rollFlashSale, rollPrices } from './market';
 import { formatOrderId, getOrderStatus } from './orders';
@@ -30,7 +30,7 @@ export function createInitialState(seed: number): GameState {
     cart: {},
     orders: [],
     inventory: [],
-    job: { level: 0, daysAtLevel: 0, workedToday: false },
+    checkIn: { lastDate: null, streak: 0 },
     nextOrderNo: 1,
     nextUid: 1,
     rngState: rng.state(),
@@ -140,7 +140,6 @@ function nextDay(state: GameState): GameState {
     prices: rollPrices(day, rng),
     flashSale: rollFlashSale(day, rng),
     coupons,
-    job: { ...state.job, workedToday: false },
     rngState: rng.state(),
     events,
   };
@@ -160,8 +159,8 @@ export function reducer(state: GameState, action: Action): GameState {
       const r = sellItem(state, action.uid);
       return { ...r.state, events: r.events };
     }
-    case 'work': {
-      const r = work(state);
+    case 'checkIn': {
+      const r = checkIn(state, action.today);
       return { ...r.state, events: r.events };
     }
     case 'nextDay':

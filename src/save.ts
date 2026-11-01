@@ -11,7 +11,7 @@
 import type { GameState } from './core';
 
 export const SAVE_KEY = 'shop-sim:save';
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 interface SaveFile {
   version: number;
@@ -22,7 +22,10 @@ interface SaveFile {
 type Migration = (old: Record<string, unknown>) => Record<string, unknown>;
 
 /** key 是「舊版本號」，函式把它轉成「舊版本號 + 1」的格式 */
-const MIGRATIONS: Record<number, Migration> = {};
+const MIGRATIONS: Record<number, Migration> = {
+  // v2：「上班」改成依現實日期的「每日簽到」
+  1: ({ job: _job, ...rest }) => ({ ...rest, checkIn: { lastDate: null, streak: 0 } }),
+};
 
 // ── 純函式（不碰 localStorage，方便測試）──
 
@@ -63,7 +66,7 @@ function isRecord(x: unknown): x is Record<string, unknown> {
 function looksLikeGameState(s: Record<string, unknown>): s is Record<string, unknown> & GameState {
   const numbers = ['day', 'money', 'rngState', 'nextOrderNo', 'nextUid'] as const;
   const arrays = ['coupons', 'orders', 'inventory', 'events'] as const;
-  const records = ['prices', 'prevPrices', 'cart', 'job'] as const;
+  const records = ['prices', 'prevPrices', 'cart', 'checkIn'] as const;
   return (
     numbers.every((k) => typeof s[k] === 'number' && Number.isFinite(s[k])) &&
     arrays.every((k) => Array.isArray(s[k])) &&

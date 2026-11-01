@@ -29,16 +29,11 @@ export const COUPON_TEMPLATES: readonly { minSpend: number; discount: number }[]
 export const MIN_DELIVERY_DAYS = 2;
 export const MAX_DELIVERY_DAYS = 4;
 
-// ── 上班 ──
-export const JOBS: readonly { title: string; dailyPay: number }[] = [
-  { title: '實習生', dailyPay: 900 },
-  { title: '助理', dailyPay: 1200 },
-  { title: '專員', dailyPay: 1500 },
-  { title: '資深專員', dailyPay: 1900 },
-  { title: '主任', dailyPay: 2400 },
-];
-/** 在同一個職位上班幾天後升職 */
-export const DAYS_TO_PROMOTE = 5;
+// ── 每日簽到（依現實日期，一天一次）──
+/** 連續簽到第 1～7 天的獎勵；第 8 天起從頭循環。斷簽會回到第 1 天 */
+export const CHECKIN_REWARDS: readonly number[] = [600, 700, 800, 900, 1000, 1100, 1500];
+/** 每連續簽到滿 7 天加送的優惠券 */
+export const CHECKIN_DAY7_COUPON = { minSpend: 600, discount: 120 };
 
 // ── 二手轉賣 ──
 /** 一般商品依今日牌價的比例回收 */

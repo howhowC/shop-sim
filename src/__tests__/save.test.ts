@@ -47,6 +47,20 @@ describe('存檔', () => {
     expect(loaded?.money).toBe(current.money + 1);
   });
 
+  it('v1 存檔（上班）轉換成 v2（每日簽到），其他進度保留', () => {
+    const { checkIn: _checkIn, ...rest } = createInitialState(1);
+    const v1 = JSON.stringify({
+      version: 1,
+      savedAt: 0,
+      state: { ...rest, money: 12345, job: { level: 2, daysAtLevel: 3, workedToday: true } },
+    });
+    const loaded = deserialize(v1);
+    expect(loaded).not.toBeNull();
+    expect(loaded!.money).toBe(12345);
+    expect(loaded!.checkIn).toEqual({ lastDate: null, streak: 0 });
+    expect(loaded).not.toHaveProperty('job');
+  });
+
   it('缺少轉換函式的舊版存檔回傳 null', () => {
     const v1 = serialize(createInitialState(1), 0);
     expect(deserialize(v1, {}, SAVE_VERSION + 1)).toBeNull();

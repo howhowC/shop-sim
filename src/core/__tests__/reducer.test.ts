@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { allProducts } from '../catalog';
 import { resalePrice } from '../income/resale';
 import { getOrderStatus } from '../orders';
-import { STARTING_MONEY } from '../config';
+import { CHECKIN_DAY7_COUPON, CHECKIN_REWARDS, STARTING_MONEY } from '../config';
 import { createInitialState, summarizeCart } from '../reducer';
 import type { GameState } from '../types';
 import { run, times } from './helpers';
@@ -120,23 +120,47 @@ describe('物流與開箱', () => {
 });
 
 describe('收入', () => {
-  it('每天只能上班一次，隔天可以再上', () => {
-    let s = run(createInitialState(1), { type: 'work' });
-    expect(s.money).toBe(STARTING_MONEY + 900);
-    s = run(s, { type: 'work' });
-    expect(s.events).toEqual([{ type: 'rejected', reason: 'already_worked_today' }]);
-    expect(s.money).toBe(STARTING_MONEY + 900);
-    s = run(s, { type: 'nextDay' }, { type: 'work' });
-    expect(s.money).toBe(STARTING_MONEY + 1800);
+  it('同一個現實日期只能簽到一次；遊戲裡按下一天也不能再簽', () => {
+    let s = run(createInitialState(1), { type: 'checkIn', today: '2026-11-01' });
+    expect(s.money).toBe(STARTING_MONEY + CHECKIN_REWARDS[0]);
+    s = run(s, { type: 'checkIn', today: '2026-11-01' });
+    expect(s.events).toEqual([{ type: 'rejected', reason: 'already_checked_in_today' }]);
+    s = run(s, { type: 'nextDay' }, { type: 'checkIn', today: '2026-11-01' });
+    expect(s.events).toEqual([{ type: 'rejected', reason: 'already_checked_in_today' }]);
+    expect(s.money).toBe(STARTING_MONEY + CHECKIN_REWARDS[0]);
   });
 
-  it('上班 5 天升職，日薪提高', () => {
-    let s = createInitialState(1);
-    for (let i = 0; i < 5; i++) s = run(s, { type: 'work' }, { type: 'nextDay' });
-    expect(s.job.level).toBe(1);
+  it('連續簽到獎勵遞增，跨月也算連續', () => {
+    let s = run(createInitialState(1), { type: 'checkIn', today: '2026-10-31' });
+    s = run(s, { type: 'checkIn', today: '2026-11-01' });
+    expect(s.checkIn).toEqual({ lastDate: '2026-11-01', streak: 2 });
+    expect(s.money).toBe(STARTING_MONEY + CHECKIN_REWARDS[0] + CHECKIN_REWARDS[1]);
+  });
+
+  it('斷簽會從第 1 天重新開始', () => {
+    let s = run(createInitialState(1), { type: 'checkIn', today: '2026-11-01' });
+    s = run(s, { type: 'checkIn', today: '2026-11-02' });
     const before = s.money;
-    s = run(s, { type: 'work' });
-    expect(s.money - before).toBe(1200);
+    s = run(s, { type: 'checkIn', today: '2026-11-04' });
+    expect(s.checkIn.streak).toBe(1);
+    expect(s.money - before).toBe(CHECKIN_REWARDS[0]);
+  });
+
+  it('日期比上次簽到還早（調過時鐘）會被拒絕', () => {
+    let s = run(createInitialState(1), { type: 'checkIn', today: '2026-11-05' });
+    s = run(s, { type: 'checkIn', today: '2026-11-04' });
+    expect(s.events).toEqual([{ type: 'rejected', reason: 'already_checked_in_today' }]);
+  });
+
+  it('連續第 7 天加送優惠券，第 8 天回到第 1 天的獎勵', () => {
+    let s = createInitialState(1);
+    for (let d = 1; d <= 7; d++) s = run(s, { type: 'checkIn', today: `2026-11-0${d}` });
+    expect(s.events).toContainEqual(expect.objectContaining({ type: 'couponReceived' }));
+    expect(s.coupons).toContainEqual(expect.objectContaining({ id: 'checkin-2026-11-07', ...CHECKIN_DAY7_COUPON }));
+    const before = s.money;
+    s = run(s, { type: 'checkIn', today: '2026-11-08' });
+    expect(s.checkIn.streak).toBe(8);
+    expect(s.money - before).toBe(CHECKIN_REWARDS[0]);
   });
 
   it('二手轉賣：一般商品低於買價回收；限量品剛到手賣不會賺', () => {

@@ -1,4 +1,4 @@
-export type Tab = 'shop' | 'cart' | 'orders' | 'room' | 'resale' | 'work';
+export type Tab = 'shop' | 'cart' | 'orders' | 'room' | 'resale' | 'checkin';
 
 const TABS: readonly [Tab, string][] = [
   ['shop', '商城'],
@@ -6,7 +6,7 @@ const TABS: readonly [Tab, string][] = [
   ['orders', '訂單'],
   ['room', '我的房間'],
   ['resale', '二手市場'],
-  ['work', '上班'],
+  ['checkin', '每日簽到'],
 ];
 
 interface Props {
