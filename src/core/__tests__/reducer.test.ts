@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { allProducts } from '../catalog';
 import { resalePrice } from '../income/resale';
 import { getOrderStatus } from '../orders';
-import { CHECKIN_DAY7_COUPON, CHECKIN_REWARDS, STARTING_MONEY } from '../config';
+import { CHECKIN_DAY7_COUPON, CHECKIN_REWARDS, STARTING_MONEY, WELCOME_COUPON } from '../config';
 import { createInitialState, summarizeCart } from '../reducer';
 import type { GameState } from '../types';
 import { run, times } from './helpers';
@@ -60,16 +60,17 @@ describe('結帳', () => {
     const notEnough = run(s0, { type: 'addToCart', productId: cheap.id }, { type: 'checkout', couponId: 'welcome' });
     expect(notEnough.events).toEqual([{ type: 'rejected', reason: 'coupon_threshold_not_met' }]);
 
-    // 挑一個不到 $1,000 的商品，買到剛好超過門檻，總額不會超過初始金額
+    // 挑一個低於門檻的商品，買到剛好超過門檻，總額不會超過初始金額
+    const { minSpend, discount } = WELCOME_COUPON;
     const p = allProducts().find(
-      (p) => p.id !== s0.flashSale?.productId && !p.limited && s0.prices[p.id] < 1000 && s0.prices[p.id] >= 300,
+      (p) => p.id !== s0.flashSale?.productId && !p.limited && s0.prices[p.id] < minSpend && s0.prices[p.id] >= minSpend / 3,
     )!;
-    const qty = Math.ceil(1000 / s0.prices[p.id]);
+    const qty = Math.ceil(minSpend / s0.prices[p.id]);
     const withCart = run(s0, { type: 'addToCart', productId: p.id, qty });
     const { subtotal } = summarizeCart(withCart);
-    expect(subtotal).toBeGreaterThanOrEqual(1000);
+    expect(subtotal).toBeGreaterThanOrEqual(minSpend);
     const s = run(withCart, { type: 'checkout', couponId: 'welcome' });
-    expect(s.money).toBe(STARTING_MONEY - (subtotal - 100));
+    expect(s.money).toBe(STARTING_MONEY - (subtotal - discount));
     expect(s.coupons.find((c) => c.id === 'welcome')).toBeUndefined();
   });
 

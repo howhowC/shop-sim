@@ -4,7 +4,7 @@
 // ── 開局 ──
 export const STARTING_MONEY = 5000;
 /** 開局送的優惠券；validDays 是含當天在內可以使用的天數 */
-export const WELCOME_COUPON = { minSpend: 1000, discount: 100, validDays: 3 };
+export const WELCOME_COUPON = { minSpend: 600, discount: 100, validDays: 3 };
 
 // ── 市場價格 ──
 /** 每日價格在基準價的 ±10% 內波動 */
@@ -20,9 +20,9 @@ export const COUPON_DROP_CHANCE = 0.35;
 /** 優惠券含當天在內可以使用的天數 */
 export const COUPON_LIFETIME_DAYS = 3;
 export const COUPON_TEMPLATES: readonly { minSpend: number; discount: number }[] = [
-  { minSpend: 500, discount: 50 },
-  { minSpend: 1000, discount: 100 },
-  { minSpend: 3000, discount: 400 },
+  { minSpend: 300, discount: 50 },
+  { minSpend: 600, discount: 100 },
+  { minSpend: 1800, discount: 400 },
 ];
 
 // ── 物流 ──
