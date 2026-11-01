@@ -1,7 +1,7 @@
 # shop-sim — 網購模擬器
 
 讓玩家滿足網購慾望的網頁遊戲：逛商城、下單、等到貨、開箱、收藏、轉賣、每日簽到領零用錢。
-目前只有買家模式；之後可能加入賣家模式、小遊戲賺外快（可能有養蠶玩法）、購物節大促、排行榜。
+目前只有買家模式＋養蠶小遊戲；之後可能加入賣家模式、更多小遊戲、購物節大促、排行榜。
 
 ## 指令
 | 指令 | 用途 |
@@ -28,12 +28,14 @@ src/
     market.ts           每日價格、限時特價、優惠券掉落
     orders.ts           物流狀態（由日期推算）
     inventory.ts        玩家擁有的物品
-    income/             收入來源（checkin.ts 每日簽到、resale.ts 轉賣）；都透過 earn() 入帳
+    silk.ts             養蠶小遊戲：買卵、餵食、摸摸、依現實日期成長（syncSilk）、放飛
+    income/             收入來源（checkin.ts 每日簽到、resale.ts 轉賣、silk.ts 賣蠶繭）；都透過 earn() 入帳
     catalog.ts          查詢商品資料
     rng.ts              seeded 亂數
     index.ts            core 對外的唯一出口
     __tests__/          單元測試
   data/products.ts      商品清單（虛構品牌）
+  data/silkBreeds.ts    蠶寶寶品種（順序對應 config.ts 的 SILK_EGG_WEIGHTS）
   save.ts               存檔／讀檔（唯一碰 localStorage 的地方）、存檔版本與轉換
   __tests__/            core 以外的測試（目前是 save.test.ts）
   ui/                   React 畫面
@@ -41,6 +43,7 @@ src/
     format.ts           金額格式、事件與錯誤代碼 → 中文訊息
     ConfirmDialog.tsx   通用確認視窗（危險操作前使用）
     UnboxModal.tsx      開箱動畫
+    SilkwormSvg.tsx     蠶寶寶造型（SVG，依品種顏色和階段畫卵／幼蟲／繭／蛾）
     views/              各分頁畫面
     styles.css          全部樣式（CSS 變數定義在 :root）
 ```

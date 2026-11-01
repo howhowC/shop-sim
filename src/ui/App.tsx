@@ -14,6 +14,7 @@ import { ResaleView } from './views/ResaleView';
 import { RoomView } from './views/RoomView';
 import { ShopView } from './views/ShopView';
 import { CheckInView } from './views/CheckInView';
+import { SilkView } from './views/SilkView';
 
 export default function App() {
   // 有存檔就接著玩，沒有就開新遊戲
@@ -92,7 +93,8 @@ export default function App() {
         {tab === 'orders' && <OrdersView state={state} onUnbox={setUnboxing} />}
         {tab === 'room' && <RoomView state={state} />}
         {tab === 'resale' && <ResaleView state={state} act={act} />}
-        {tab === 'checkin' && <CheckInView state={state} act={act} />}
+        {tab === 'checkin' && <CheckInView state={state} act={act} onSilk={() => setTab('silk')} />}
+        {tab === 'silk' && <SilkView state={state} act={act} />}
       </main>
 
       <footer className="wrap foot">

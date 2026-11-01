@@ -64,8 +64,57 @@ export interface CheckInState {
   streak: number;
 }
 
-/** 收入來源。之後加入小遊戲時，在這裡新增 'minigame'。 */
-export type IncomeSource = 'checkIn' | 'resale';
+/** 收入來源。新增小遊戲時在這裡加上名稱。 */
+export type IncomeSource = 'checkIn' | 'resale' | 'silk';
+
+// ── 養蠶小遊戲 ──
+export type SilkBreedId = string;
+export type SilkRarity = 'common' | 'uncommon' | 'rare' | 'legendary';
+
+export interface SilkBreed {
+  id: SilkBreedId;
+  name: string;
+  rarity: SilkRarity;
+  /** SVG 用的身體顏色與花紋顏色 */
+  body: string;
+  pattern: string;
+  patternType: 'none' | 'stripes' | 'spots' | 'swirl';
+  /** 頭上戴的帽子（幼蟲和蛾會畫出來） */
+  hat?: 'bunny' | 'hamster';
+  /** 普通品質的繭賣價（元） */
+  cocoonPrice: Money;
+}
+
+export type SilkEggKind = 'egg' | 'premiumEgg';
+export type SilkShopItem = SilkEggKind | 'leaf';
+
+export interface Silkworm {
+  uid: number;
+  /** 買卵時就抽好，孵化後才給玩家看 */
+  breed: SilkBreedId;
+  /** 0 卵、1～5 齡、6 繭、7 蛾（見 config.ts） */
+  stage: number;
+  /** 進入目前階段的現實日期 'YYYY-MM-DD' */
+  stageSince: string;
+  /** 最近一次餵食／摸摸的現實日期 */
+  fedOn: string | null;
+  pettedOn: string | null;
+  /** 親密度 0～100，影響繭的品質 */
+  affection: number;
+}
+
+export interface SilkDexEntry {
+  hatched: boolean;
+  moth: boolean;
+}
+
+export interface SilkState {
+  worms: Silkworm[];
+  /** 桑葉剩幾份；一份餵一次 */
+  leaves: number;
+  /** 圖鑑；沒出現過的品種不會有 key */
+  dex: Record<SilkBreedId, SilkDexEntry>;
+}
 
 export type RejectReason =
   | 'unknown_product'
@@ -77,7 +126,17 @@ export type RejectReason =
   | 'order_not_delivered'
   | 'order_already_opened'
   | 'unknown_item'
-  | 'already_checked_in_today';
+  | 'already_checked_in_today'
+  | 'silk_unknown'
+  | 'silk_unknown_item'
+  | 'silk_capacity_full'
+  | 'silk_no_leaves'
+  | 'silk_already_fed'
+  | 'silk_already_petted'
+  | 'silk_cannot_feed'
+  | 'silk_cannot_pet'
+  | 'silk_cannot_sell'
+  | 'silk_cannot_release';
 
 export type GameEvent =
   | { type: 'orderPlaced'; orderId: string; total: Money }
@@ -85,7 +144,15 @@ export type GameEvent =
   | { type: 'unboxed'; orderId: string; productIds: ProductId[] }
   | { type: 'income'; source: IncomeSource; amount: Money }
   | { type: 'couponReceived'; coupon: Coupon }
-  | { type: 'rejected'; reason: RejectReason };
+  | { type: 'rejected'; reason: RejectReason }
+  | { type: 'silkBought'; item: SilkShopItem; qty: number; total: Money }
+  | { type: 'silkHatched'; uid: number; breed: SilkBreedId }
+  | { type: 'silkGrew'; uids: number[] }
+  | { type: 'silkCocooned'; uids: number[] }
+  | { type: 'silkEmerged'; uids: number[] }
+  | { type: 'silkFed'; uid: number }
+  | { type: 'silkPetted'; uid: number }
+  | { type: 'silkReleased'; uid: number };
 
 export interface GameState {
   day: number;
@@ -102,6 +169,7 @@ export interface GameState {
   orders: Order[];
   inventory: OwnedItem[];
   checkIn: CheckInState;
+  silk: SilkState;
   nextOrderNo: number;
   nextUid: number;
   /** 最近一次 action 產生的事件，給 UI 顯示通知用 */

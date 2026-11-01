@@ -148,6 +148,48 @@ nav.tabs { border-top: 1px solid var(--line); }
 .checkin-days li.today { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
 .locked { opacity: .6; border-style: dashed; }
 
+/* silkworm mini-game: soft green "mulberry" box, rounded cards, gently bobbing worms */
+:root { --leaf: #dff0d2; --leaf-ink: #3d6b2a; --heart: #ff6f91; --rare: #c86bd8; --legend: #e0a922; }
+@media (prefers-color-scheme: dark) {
+  :root { --leaf: #22402a; --leaf-ink: #a6dc8c; }
+}
+.silk-side { display: flex; flex-direction: column; gap: 16px; }
+.silk-box { background: var(--leaf); border-color: transparent; display: flex; flex-direction: column; gap: 12px; }
+.silk-leaves { color: var(--leaf-ink); font-weight: 700; }
+.silk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.silk-card { background: var(--surface); border-radius: 16px; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; border: 2px solid transparent; }
+.silk-card.rare { border-color: var(--rare); }
+.silk-card.legendary { border-color: var(--legend); box-shadow: 0 0 12px color-mix(in srgb, var(--legend) 50%, transparent); }
+.silk-card.empty { border: 2px dashed color-mix(in srgb, var(--leaf-ink) 35%, transparent); background: transparent; color: var(--leaf-ink); justify-content: center; min-height: 150px; font-size: 14px; }
+.silk-pic { position: relative; }
+.silk-mystery { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; background: var(--sticker); color: var(--sticker-ink); font-weight: 700; display: grid; place-items: center; }
+.silk-name { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.silk-rarity { font-size: 11px; padding: 1px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+.silk-rarity.uncommon { color: var(--good); }
+.silk-rarity.rare { background: var(--rare); color: #fff; }
+.silk-rarity.legendary { background: var(--legend); color: #3a2a00; }
+.silk-hearts { color: var(--heart); letter-spacing: 2px; }
+.silk-hint { min-height: 2.6em; }
+.silk-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: auto; }
+.silk-shop { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.silk-shop li { display: grid; grid-template-columns: 32px 1fr auto; gap: 10px; align-items: center; }
+.silk-shop-icon { font-size: 26px; text-align: center; }
+.silk-shop-name { display: flex; flex-direction: column; }
+.silk-shop-buttons { display: flex; gap: 6px; }
+.silk-dex { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.silk-dex li { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; border-radius: 12px; background: var(--surface-2); }
+.silk-dex li.unseen .silk-rarity { visibility: hidden; }
+.silkworm-svg.stage-larva .larva-body { animation: silk-bob 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center bottom; }
+.silkworm-svg.stage-moth .wings { animation: silk-flap 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes silk-bob {
+  0%, 100% { transform: scaleX(1) translateY(0); }
+  50% { transform: scaleX(.95) translateY(-2px); }
+}
+@keyframes silk-flap {
+  0%, 100% { transform: scaleX(1); }
+  50% { transform: scaleX(.85); }
+}
+
 /* unbox modal */
 .modal { position: fixed; inset: 0; background: rgba(10, 12, 30, .6); display: grid; place-items: center; z-index: 20; padding: 16px; }
 .mbox { background: var(--surface); border-radius: 16px; padding: 24px; width: min(360px, 100%); text-align: center; display: flex; flex-direction: column; gap: 14px; align-items: center; }

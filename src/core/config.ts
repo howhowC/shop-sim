@@ -42,3 +42,33 @@ export const RESALE_RATE = 0.55;
 export const LIMITED_RESALE_GROWTH_PER_DAY = 0.02;
 /** 限量品二手價最多是買價的幾倍（0.02 × 25 天就會到上限） */
 export const LIMITED_RESALE_MAX_RATE = 1.5;
+
+// ── 養蠶小遊戲（成長依現實日期，一天最多升一個階段）──
+/** 階段編號：0 卵、1～5 一齡到五齡、6 繭、7 蛾 */
+export const SILK_STAGE_EGG = 0;
+export const SILK_STAGE_LAST_LARVA = 5;
+export const SILK_STAGE_COCOON = 6;
+export const SILK_STAGE_MOTH = 7;
+/** 飼養盒最多同時養幾隻（含卵、繭、蛾） */
+export const SILK_CAPACITY = 12;
+/** 小店價格（元） */
+export const SILK_PRICES = { egg: 60, premiumEgg: 180, leaf: 10 } as const;
+/** 親密度：餵食、摸摸各加多少；上限 */
+export const SILK_FEED_AFFECTION = 10;
+export const SILK_PET_AFFECTION = 5;
+export const SILK_MAX_AFFECTION = 100;
+/** 繭的品質：親密度 ≥ minAffection 就套用該倍率（由高到低檢查）。
+ *  幼蟲期 5 天、每天餵食＋摸摸最多 +15，全勤照顧剛好 75 → 極品；只餵不摸 50 → 優良 */
+export const SILK_COCOON_QUALITY: readonly { quality: 'great' | 'good' | 'normal'; minAffection: number; rate: number }[] = [
+  { quality: 'great', minAffection: 70, rate: 1.8 },
+  { quality: 'good', minAffection: 40, rate: 1.3 },
+  { quality: 'normal', minAffection: 0, rate: 1 },
+];
+/** 幼蟲出售價 = 繭基礎價 × 齡數 × 這個比例（賣幼蟲比等結繭划不來） */
+export const SILK_LARVA_SELL_RATE_PER_STAGE = 0.1;
+/** 抽卵權重，順序對應 data/silkBreeds.ts 的 SILK_BREEDS（兩邊長度必須一樣；總和 100，數字即百分比）
+ *  白玉、奶茶、虎斑、櫻花、黃金、星空、黑旋風、黑白斑馬、兔兔帽、黃金鼠帽 */
+export const SILK_EGG_WEIGHTS = {
+  egg: [40, 22, 10, 4, 3, 1, 9, 7, 2, 2],
+  premiumEgg: [12, 12, 15, 11, 10, 6, 10, 10, 7, 7],
+} as const;

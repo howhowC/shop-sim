@@ -3,7 +3,13 @@ import { CHECKIN_DAY7_COUPON, CHECKIN_REWARDS, canCheckIn, nextStreak } from '..
 import type { Action, GameState } from '../../core';
 import { fmt, localDateString } from '../format';
 
-export function CheckInView({ state, act }: { state: GameState; act: (a: Action) => void }) {
+interface Props {
+  state: GameState;
+  act: (a: Action) => void;
+  onSilk: () => void;
+}
+
+export function CheckInView({ state, act, onSilk }: Props) {
   // 進入這個分頁時取一次日期；切換分頁會重新掛載，所以跨過午夜後重新點進來就會更新
   const [today] = useState(() => localDateString(new Date()));
   const available = canCheckIn(state, today);
@@ -40,9 +46,12 @@ export function CheckInView({ state, act }: { state: GameState; act: (a: Action)
             {available ? `簽到，領 ${fmt(CHECKIN_REWARDS[cycleDay])}` : '今天已簽到，明天再來'}
           </button>
         </div>
-        <div className="panel job locked">
+        <div className="panel job">
           <strong>小遊戲賺外快</strong>
-          <p className="small muted">之後的版本會加入：玩小遊戲賺零用錢。</p>
+          <p className="small muted">養蠶寶寶：每天餵桑葉，結繭後可以賣錢，也能等羽化收集圖鑑。</p>
+          <button className="btn ghost" onClick={onSilk}>
+            去養蠶
+          </button>
         </div>
       </div>
     </>

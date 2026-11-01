@@ -12,7 +12,7 @@ import { fillMissingPrices } from './core';
 import type { GameState } from './core';
 
 export const SAVE_KEY = 'shop-sim:save';
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 interface SaveFile {
   version: number;
@@ -45,6 +45,8 @@ const MIGRATIONS: Record<number, Migration> = {
   1: ({ job: _job, ...rest }) => ({ ...rest, checkIn: { lastDate: null, streak: 0 } }),
   // v3：商品 id 改名，讓 id 和商品名稱一致
   2: (old) => renameProductIds(old, { 'silkworm-box': 'silkworm', 'dwarf-hamster': 'golden-hamster' }),
+  // v4：新增養蠶小遊戲
+  3: (old) => ({ ...old, silk: { worms: [], leaves: 0, dex: {} } }),
 };
 
 // ── 純函式（不碰 localStorage，方便測試）──
@@ -91,7 +93,11 @@ function looksLikeGameState(s: Record<string, unknown>): s is Record<string, unk
     numbers.every((k) => typeof s[k] === 'number' && Number.isFinite(s[k])) &&
     arrays.every((k) => Array.isArray(s[k])) &&
     records.every((k) => isRecord(s[k])) &&
-    (s.flashSale === null || isRecord(s.flashSale))
+    (s.flashSale === null || isRecord(s.flashSale)) &&
+    isRecord(s.silk) &&
+    Array.isArray(s.silk.worms) &&
+    typeof s.silk.leaves === 'number' &&
+    isRecord(s.silk.dex)
   );
 }
 

@@ -83,6 +83,14 @@ describe('存檔', () => {
     expect(loaded.inventory[0].productId).toBe('silkworm');
   });
 
+  it('v3 存檔轉換成 v4 後有空的養蠶資料，其他進度保留', () => {
+    const { silk: _silk, ...v3State } = { ...createInitialState(1), money: 4321 };
+    const loaded = deserialize(JSON.stringify({ version: 3, savedAt: 0, state: v3State }))!;
+    expect(loaded).not.toBeNull();
+    expect(loaded.money).toBe(4321);
+    expect(loaded.silk).toEqual({ worms: [], leaves: 0, dex: {} });
+  });
+
   it('存檔裡沒有新商品的價格時，讀檔會補上', () => {
     const s = createInitialState(1);
     const { silkworm: _p, ...prices } = s.prices;

@@ -3,10 +3,12 @@ import { getProduct } from './catalog';
 import { MAX_DELIVERY_DAYS, MIN_DELIVERY_DAYS, STARTING_MONEY, WELCOME_COUPON } from './config';
 import { sellItem } from './income/resale';
 import { checkIn } from './income/checkin';
+import { sellSilkworm } from './income/silk';
 import { addFromOrder } from './inventory';
 import { currentPrice, maybeDropCoupon, rollFlashSale, rollPrices } from './market';
 import { formatOrderId, getOrderStatus } from './orders';
 import { createRng } from './rng';
+import { buySilk, createSilkState, feedSilkworm, petSilkworm, releaseMoth, syncSilk, type SilkResult } from './silk';
 import type { Coupon, GameEvent, GameState, Money, OrderLine, RejectReason } from './types';
 
 export function createInitialState(seed: number): GameState {
@@ -31,6 +33,7 @@ export function createInitialState(seed: number): GameState {
     orders: [],
     inventory: [],
     checkIn: { lastDate: null, streak: 0 },
+    silk: createSilkState(),
     nextOrderNo: 1,
     nextUid: 1,
     rngState: rng.state(),
@@ -145,6 +148,17 @@ function nextDay(state: GameState): GameState {
   };
 }
 
+/**
+ * 養蠶 action：先依今天日期成長，再做玩家的動作。
+ * 動作被拒絕時整個 state 不變（成長會在下一次 action 補上），只回傳拒絕原因。
+ */
+function silkAction(state: GameState, today: string, op: (s: GameState) => SilkResult): GameState {
+  const synced = syncSilk(state, today);
+  const r = op(synced.state);
+  if (r.events.some((e) => e.type === 'rejected')) return { ...state, events: r.events };
+  return { ...r.state, events: [...synced.events, ...r.events] };
+}
+
 export function reducer(state: GameState, action: Action): GameState {
   switch (action.type) {
     case 'addToCart':
@@ -165,5 +179,17 @@ export function reducer(state: GameState, action: Action): GameState {
     }
     case 'nextDay':
       return nextDay(state);
+    case 'silkSync':
+      return silkAction(state, action.today, (s) => ({ state: s, events: [] }));
+    case 'silkBuy':
+      return silkAction(state, action.today, (s) => buySilk(s, action.item, action.qty ?? 1, action.today));
+    case 'silkFeed':
+      return silkAction(state, action.today, (s) => feedSilkworm(s, action.uid, action.today));
+    case 'silkPet':
+      return silkAction(state, action.today, (s) => petSilkworm(s, action.uid, action.today));
+    case 'silkSell':
+      return silkAction(state, action.today, (s) => sellSilkworm(s, action.uid));
+    case 'silkRelease':
+      return silkAction(state, action.today, (s) => releaseMoth(s, action.uid));
   }
 }
