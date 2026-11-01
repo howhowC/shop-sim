@@ -8,6 +8,7 @@
 // 4. 在 src/__tests__/save.test.ts 加一個舊版存檔能成功轉換的測試
 // 沒有對應轉換函式的舊存檔會被丟棄，玩家會開新遊戲。
 
+import { fillMissingPrices } from './core';
 import type { GameState } from './core';
 
 export const SAVE_KEY = 'shop-sim:save';
@@ -55,7 +56,7 @@ export function deserialize(
     if (!migrate) return null;
     state = migrate(state);
   }
-  return looksLikeGameState(state) ? state : null;
+  return looksLikeGameState(state) ? fillMissingPrices(state) : null;
 }
 
 function isRecord(x: unknown): x is Record<string, unknown> {

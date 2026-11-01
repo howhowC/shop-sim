@@ -8,16 +8,37 @@ import {
   LIMITED_DAILY_GROWTH,
 } from './config';
 import type { Rng } from './rng';
-import type { Coupon, FlashSale, GameState, Money, ProductId } from './types';
+import type { Coupon, FlashSale, GameState, Money, Product, ProductId } from './types';
+
+/** 限量品依天數上漲後的基準價（還沒加每日波動） */
+function trendPrice(p: Product, day: number): number {
+  const growth = p.limited ? 1 + LIMITED_DAILY_GROWTH * (day - 1) : 1;
+  return p.basePrice * growth;
+}
 
 export function rollPrices(day: number, rng: Rng): Record<ProductId, Money> {
   const prices: Record<ProductId, Money> = {};
   for (const p of allProducts()) {
-    const growth = p.limited ? 1 + LIMITED_DAILY_GROWTH * (day - 1) : 1;
     const swing = 1 - DAILY_SWING + rng.next() * DAILY_SWING * 2;
-    prices[p.id] = Math.max(10, round10(p.basePrice * growth * swing));
+    prices[p.id] = Math.max(10, round10(trendPrice(p, day) * swing));
   }
   return prices;
+}
+
+/**
+ * 舊存檔裡沒有之後才新增的商品價格，讀檔後用基準價補上（不加波動，所以不用動到 rng）。
+ * 這樣新增商品時不需要改存檔版本。
+ */
+export function fillMissingPrices(state: GameState): GameState {
+  const missing = allProducts().filter((p) => state.prices[p.id] === undefined);
+  if (missing.length === 0) return state;
+  const prices = { ...state.prices };
+  const prevPrices = { ...state.prevPrices };
+  for (const p of missing) {
+    prices[p.id] = Math.max(10, round10(trendPrice(p, state.day)));
+    prevPrices[p.id] ??= prices[p.id];
+  }
+  return { ...state, prices, prevPrices };
 }
 
 export function rollFlashSale(day: number, rng: Rng): FlashSale {

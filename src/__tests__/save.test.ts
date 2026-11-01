@@ -61,6 +61,16 @@ describe('存檔', () => {
     expect(loaded).not.toHaveProperty('job');
   });
 
+  it('存檔裡沒有新商品的價格時，讀檔會補上', () => {
+    const s = createInitialState(1);
+    const { 'silkworm-box': _p, ...prices } = s.prices;
+    const { 'silkworm-box': _q, ...prevPrices } = s.prevPrices;
+    const loaded = deserialize(serialize({ ...s, prices, prevPrices }, 0))!;
+    expect(loaded.prices['silkworm-box']).toBeGreaterThan(0);
+    expect(loaded.prevPrices['silkworm-box']).toBe(loaded.prices['silkworm-box']);
+    expect(loaded.prices['kb-87']).toBe(s.prices['kb-87']); // 原本就有的價格不變
+  });
+
   it('缺少轉換函式的舊版存檔回傳 null', () => {
     const v1 = serialize(createInitialState(1), 0);
     expect(deserialize(v1, {}, SAVE_VERSION + 1)).toBeNull();

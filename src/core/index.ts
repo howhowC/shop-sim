@@ -4,7 +4,7 @@ export type { Action } from './actions';
 export { createInitialState, reducer, summarizeCart } from './reducer';
 export type { CartSummary } from './reducer';
 export { allProducts, getProduct } from './catalog';
-export { currentPrice } from './market';
+export { currentPrice, fillMissingPrices } from './market';
 export { getOrderStatus } from './orders';
 export { resalePrice } from './income/resale';
 export { CHECKIN_REWARDS, CHECKIN_DAY7_COUPON, STARTING_MONEY } from './config';
