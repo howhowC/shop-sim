@@ -54,7 +54,7 @@ export const SILK_STAGE_LAST_LARVA = 5;
 export const SILK_STAGE_COCOON = 6;
 export const SILK_STAGE_MOTH = 7;
 /** 飼養盒最多同時養幾隻（含卵、繭、蛾） */
-export const SILK_CAPACITY = 12;
+export const SILK_CAPACITY = 60;
 /** 小店價格（元） */
 export const SILK_PRICES = { egg: 60, premiumEgg: 180, leaf: 10 } as const;
 /** 親密度：餵食、摸摸各加多少；上限 */
@@ -70,9 +70,9 @@ export const SILK_COCOON_QUALITY: readonly { quality: 'great' | 'good' | 'normal
 ];
 /** 幼蟲出售價 = 繭基礎價 × 齡數 × 這個比例（賣幼蟲比等結繭划不來） */
 export const SILK_LARVA_SELL_RATE_PER_STAGE = 0.1;
-/** 抽卵權重，順序對應 data/silkBreeds.ts 的 SILK_BREEDS（兩邊長度必須一樣；總和 100，數字即百分比）
- *  白玉、奶茶、虎斑、櫻花、黃金、星空、黑旋風、黑白斑馬、兔兔帽、黃金鼠帽 */
+/** 抽卵機率：每個稀有度的總機率（%），同稀有度的品種平分。
+ *  加品種或改品種等級時不用改這裡；例如普通卵有 6 種普通品種，每種 75% ÷ 6 = 12.5% */
 export const SILK_EGG_WEIGHTS = {
-  egg: [40, 22, 10, 4, 3, 1, 9, 7, 2, 2],
-  premiumEgg: [12, 12, 15, 11, 10, 6, 10, 10, 7, 7],
+  egg: { common: 75, uncommon: 15, rare: 8, legendary: 2 },
+  premiumEgg: { common: 35, uncommon: 25, rare: 25, legendary: 15 },
 } as const;

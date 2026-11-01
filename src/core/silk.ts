@@ -22,6 +22,7 @@ import type {
   SilkBreed,
   SilkBreedId,
   SilkEggKind,
+  SilkRarity,
   SilkShopItem,
   SilkState,
   Silkworm,
@@ -93,16 +94,18 @@ export function syncSilk(state: GameState, today: string): SilkResult {
   return { state: { ...state, silk: { ...state.silk, worms, dex } }, events };
 }
 
-/** 依權重抽品種 */
+const RARITIES: readonly SilkRarity[] = ['common', 'uncommon', 'rare', 'legendary'];
+
+/** 兩階段抽：先依權重抽稀有度，再從該稀有度的品種平均抽一個（沒有品種的稀有度不會被抽到） */
 export function rollBreed(kind: SilkEggKind, rng: Rng): SilkBreedId {
   const weights = SILK_EGG_WEIGHTS[kind];
-  const total = weights.reduce((a, b) => a + b, 0);
+  const pools = RARITIES.map((rarity) => ({ weight: weights[rarity], breeds: SILK_BREEDS.filter((b) => b.rarity === rarity) })).filter(
+    (p) => p.breeds.length > 0 && p.weight > 0,
+  );
+  const total = pools.reduce((sum, p) => sum + p.weight, 0);
   let r = rng.next() * total;
-  for (let i = 0; i < weights.length; i++) {
-    r -= weights[i];
-    if (r < 0) return SILK_BREEDS[i].id;
-  }
-  return SILK_BREEDS[weights.length - 1].id;
+  const pool = pools.find((p) => (r -= p.weight) < 0) ?? pools[pools.length - 1];
+  return rng.pick(pool.breeds).id;
 }
 
 export const rejected = (state: GameState, reason: RejectReason): SilkResult => ({

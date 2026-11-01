@@ -12,7 +12,8 @@ import {
 } from '../config';
 import { cocoonQuality, silkSellPrice } from '../income/silk';
 import { createInitialState } from '../reducer';
-import { allSilkBreeds, getSilkBreed } from '../silk';
+import { createRng } from '../rng';
+import { allSilkBreeds, getSilkBreed, rollBreed } from '../silk';
 import type { GameState, Silkworm } from '../types';
 import { run } from './helpers';
 
@@ -41,10 +42,29 @@ function withWorm(s: GameState, w: Partial<Silkworm>, leaves = 10): GameState {
 const worm = (s: GameState) => s.silk.worms[0];
 
 describe('養蠶：品種資料', () => {
-  it('抽卵權重和品種清單一一對應，品種 id 不重複', () => {
+  it('每個稀有度都至少有一個品種，品種 id 不重複', () => {
     const breeds = allSilkBreeds();
-    for (const weights of Object.values(SILK_EGG_WEIGHTS)) expect(weights).toHaveLength(breeds.length);
+    for (const rarity of Object.keys(SILK_EGG_WEIGHTS.egg)) expect(breeds.some((b) => b.rarity === rarity)).toBe(true);
     expect(new Set(breeds.map((b) => b.id)).size).toBe(breeds.length);
+  });
+
+  it('精選蠶卵抽到傳說品種的次數明顯比普通蠶卵多', () => {
+    const countLegendary = (kind: 'egg' | 'premiumEgg') => {
+      const rng = createRng(123);
+      let n = 0;
+      for (let i = 0; i < 2000; i++) if (getSilkBreed(rollBreed(kind, rng))?.rarity === 'legendary') n++;
+      return n;
+    };
+    // 期望值：普通卵約 2%（40 次）、精選卵約 15%（300 次）
+    expect(countLegendary('egg')).toBeLessThan(100);
+    expect(countLegendary('premiumEgg')).toBeGreaterThan(200);
+  });
+
+  it('每個品種都抽得到', () => {
+    const rng = createRng(7);
+    const seen = new Set<string>();
+    for (let i = 0; i < 3000; i++) seen.add(rollBreed('premiumEgg', rng));
+    expect(seen.size).toBe(allSilkBreeds().length);
   });
 });
 

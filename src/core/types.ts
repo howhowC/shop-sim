@@ -89,9 +89,12 @@ export interface SilkBreed {
   /** SVG 用的身體顏色與花紋顏色 */
   body: string;
   pattern: string;
-  patternType: 'none' | 'stripes' | 'spots' | 'swirl';
+  /** rainbow：每節身體不同顏色（body/pattern 只當底色）；crescent：月牙紋 */
+  patternType: 'none' | 'stripes' | 'spots' | 'swirl' | 'rainbow' | 'crescent';
   /** 頭上戴的帽子（幼蟲和蛾會畫出來） */
-  hat?: 'bunny' | 'hamster';
+  hat?: 'bunny' | 'hamster' | 'bear' | 'strawberry' | 'chick';
+  /** 整隻有柔和光暈 */
+  glow?: boolean;
   /** 普通品質的繭賣價（元） */
   cocoonPrice: Money;
 }

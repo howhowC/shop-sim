@@ -25,10 +25,10 @@ A cute, low-pressure pet-raising game in its own tab. It shares your wallet with
 - **Life cycle**: egg → 1st–5th instar → cocoon → moth, about 8 real-world days per silkworm.
 - **Daily care**: feed one mulberry leaf a day and the silkworm grows one stage the next day. Forget a day and it simply waits; nothing ever dies.
 - **Affection**: feeding and petting raise affection, which decides the cocoon's quality (normal / good / great) and its price.
-- **10 fictional breeds** across four rarities, from the plain 白玉蠶 to the legendary 星空蠶, plus silkworms wearing bunny or hamster hats. The breed is drawn when you buy the egg and revealed when it hatches; premium eggs have better odds.
+- **20 fictional breeds** across four rarities: flavour colours like 抹茶蠶 and 芋頭蠶, silkworms wearing bunny, bear, strawberry or chick hats, and legendaries such as the rainbow-segmented 彩虹蠶 and the softly glowing 月光蠶. The breed is drawn when you buy the egg and revealed when it hatches; odds are set per rarity (premium eggs favour rarer breeds), so new breeds need no odds tuning.
 - **Sell or collect**: sell larvae or cocoons for money, or let a cocoon become a moth to complete its collection-book entry (moths can only be released, not sold).
 - **Collection book**: each breed records whether you have hatched it and raised it into a moth; undiscovered breeds show as silhouettes.
-- All silkworm art is generated SVG; a breed is just a set of colours, a pattern and an optional hat.
+- All silkworm art is generated SVG; a breed is just a set of colours, a pattern, an optional hat and an optional glow.
 
 ## Tech stack
 

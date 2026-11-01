@@ -187,6 +187,11 @@ nav.tabs { border-top: 1px solid var(--line); }
 .silk-dex li.unseen .silk-rarity { visibility: hidden; }
 .silkworm-svg.stage-larva .larva-body { animation: silk-bob 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center bottom; }
 .silkworm-svg.stage-moth .wings { animation: silk-flap 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.silkworm-svg.silk-glow { filter: drop-shadow(0 0 4px #c9d3ff) drop-shadow(0 0 10px rgba(184, 196, 239, .7)); animation: silk-glow 3s ease-in-out infinite; }
+@keyframes silk-glow {
+  0%, 100% { filter: drop-shadow(0 0 4px #c9d3ff) drop-shadow(0 0 10px rgba(184, 196, 239, .7)); }
+  50% { filter: drop-shadow(0 0 6px #e0e6ff) drop-shadow(0 0 16px rgba(184, 196, 239, .9)); }
+}
 @keyframes silk-bob {
   0%, 100% { transform: scaleX(1) translateY(0); }
   50% { transform: scaleX(.95) translateY(-2px); }
