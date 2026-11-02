@@ -12,7 +12,7 @@ export const ANNOUNCEMENTS: readonly AnnouncementTemplate[] = [
     title: '郵件功能上線囉！',
     body: '以後有活動、禮物或驚喜，都會寄到這個信箱。先送你一點零用錢和兩張蠶寶寶加速券，祝你購物愉快！',
     rewards: [
-      { kind: 'money', amount: 300 },
+      { kind: 'money', amount: 5000 },
       { kind: 'silk', item: 'speedup', qty: 2 },
     ],
   },
