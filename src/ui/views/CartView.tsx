@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { getProduct, summarizeCart } from '../../core';
 import type { Action, GameState } from '../../core';
+import { CheckoutSummary } from '../CheckoutSummary';
 import { fmt } from '../format';
 
 interface Props {
@@ -64,49 +65,14 @@ export function CartView({ state, act, onBrowse }: Props) {
 
         <div className="panel">
           <h3>結帳</h3>
-          <fieldset className="coupons">
-            <legend className="small muted">優惠券</legend>
-            <label className="coupon">
-              <input type="radio" name="coupon" checked={!coupon} onChange={() => setCouponId(undefined)} />
-              不使用
-            </label>
-            {coupons.map((c) => {
-              const reachable = sum.subtotal >= c.minSpend;
-              return (
-                <label className="coupon" key={c.id}>
-                  <input
-                    type="radio"
-                    name="coupon"
-                    checked={couponId === c.id}
-                    disabled={!reachable}
-                    onChange={() => setCouponId(c.id)}
-                  />
-                  滿 {fmt(c.minSpend)} 折 {fmt(c.discount)}
-                  <span className="small muted">
-                    {reachable ? `第 ${c.expiresDay} 天到期` : `還差 ${fmt(c.minSpend - sum.subtotal)}`}
-                  </span>
-                </label>
-              );
-            })}
-          </fieldset>
-          <div className="sum">
-            <div>
-              <span>商品小計</span>
-              <span className="num">{fmt(sum.subtotal)}</span>
-            </div>
-            <div>
-              <span>運費</span>
-              <span className="num">$0</span>
-            </div>
-            <div>
-              <span>折扣</span>
-              <span className="num">−{fmt(sum.discount)}</span>
-            </div>
-            <div className="total">
-              <span>總計</span>
-              <span className="num">{fmt(sum.total)}</span>
-            </div>
-          </div>
+          <CheckoutSummary
+            coupons={coupons}
+            couponId={coupon?.id}
+            onCoupon={setCouponId}
+            subtotal={sum.subtotal}
+            discount={sum.discount}
+            total={sum.total}
+          />
           <button
             className="btn block"
             disabled={tooPoor || couponUnusable}
@@ -117,7 +83,7 @@ export function CartView({ state, act, onBrowse }: Props) {
           >
             {tooPoor ? '錢包餘額不足' : '確認結帳'}
           </button>
-          <p className="small muted">2～4 天送達</p>
+          <p className="small muted">2～4 天送達；養蠶用品結帳後立即到貨</p>
         </div>
       </div>
     </>

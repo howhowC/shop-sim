@@ -1,12 +1,12 @@
 import type { Action } from './actions';
-import { getProduct } from './catalog';
+import { getProduct, isPhysical } from './catalog';
 import { MAX_DELIVERY_DAYS, MIN_DELIVERY_DAYS, STARTING_MONEY, WELCOME_COUPON } from './config';
 import { sellItem } from './income/resale';
 import { checkIn } from './income/checkin';
 import { sellSilkworm } from './income/silk';
 import { addFromOrder, findItem, removeItem } from './inventory';
 import { claimAllMail, claimMail, createMailState, deliverMilestones, rollRandomMail, syncAnnouncements } from './mail';
-import { currentPrice, maybeDropCoupon, rollFlashSale, rollPrices } from './market';
+import { couponDiscount, currentPrice, findUsableCoupon, maybeDropCoupon, rollFlashSale, rollPrices } from './market';
 import { activeQty, formatOrderId, getOrderStatus, isOrderCancelled, refundForOne, returnDaysLeft, shippedQty } from './orders';
 import { createRng } from './rng';
 import { createRouletteState, spinRoulette } from './roulette';
@@ -14,9 +14,13 @@ import {
   buySilk,
   createSilkState,
   feedSilkworm,
+  grantSilkItems,
   petSilkworm,
+  placeEggs,
   releaseMoth,
   renameSilkworm,
+  setSilkCartQty,
+  silkCheckout,
   speedupSilkworm,
   syncSilk,
   type SilkResult,
@@ -46,6 +50,7 @@ export function createInitialState(seed: number): GameState {
     inventory: [],
     checkIn: { lastDate: null, streak: 0 },
     silk: createSilkState(),
+    silkCart: {},
     mail: createMailState(),
     roulette: createRouletteState(),
     nextOrderNo: 1,
@@ -71,7 +76,7 @@ export function summarizeCart(state: GameState, coupon?: Coupon): CartSummary {
     lines.push({ productId, unitPrice, qty });
   }
   const subtotal = lines.reduce((sum, l) => sum + l.unitPrice * l.qty, 0);
-  const discount = coupon && subtotal >= coupon.minSpend ? coupon.discount : 0;
+  const discount = couponDiscount(subtotal, coupon);
   return { lines, subtotal, discount, total: subtotal - discount };
 }
 
@@ -88,10 +93,14 @@ function setQty(state: GameState, productId: string, qty: number): GameState {
   return { ...state, cart, events: [] };
 }
 
+/**
+ * 結帳。養蠶用品（Product.silk）付款時立即送進養蠶系統，其他商品照常物流；
+ * 整張訂單都是養蠶用品時，訂單直接標成已送達、已開箱。
+ */
 function checkout(state: GameState, couponId?: string): GameState {
   let coupon: Coupon | undefined;
   if (couponId !== undefined) {
-    coupon = state.coupons.find((c) => c.id === couponId && c.expiresDay >= state.day);
+    coupon = findUsableCoupon(state, couponId);
     if (!coupon) return reject(state, 'invalid_coupon');
   }
   const summary = summarizeCart(state, coupon);
@@ -101,15 +110,20 @@ function checkout(state: GameState, couponId?: string): GameState {
 
   const rng = createRng(state.rngState);
   const id = formatOrderId(state.nextOrderNo);
-  const order = {
+  const silkItems = summary.lines.flatMap((l) => {
+    const silk = getProduct(l.productId)?.silk;
+    return silk ? [{ item: silk.item, qty: silk.qty * l.qty }] : [];
+  });
+  const onlySilk = silkItems.length === summary.lines.length;
+  const order: Order = {
     id,
     lines: summary.lines,
     total: summary.total,
     placedDay: state.day,
-    deliveryDay: state.day + rng.int(MIN_DELIVERY_DAYS, MAX_DELIVERY_DAYS),
-    opened: false,
+    deliveryDay: onlySilk ? state.day : state.day + rng.int(MIN_DELIVERY_DAYS, MAX_DELIVERY_DAYS),
+    opened: onlySilk,
   };
-  return {
+  const placed: GameState = {
     ...state,
     money: state.money - summary.total,
     cart: {},
@@ -117,8 +131,13 @@ function checkout(state: GameState, couponId?: string): GameState {
     orders: [...state.orders, order],
     nextOrderNo: state.nextOrderNo + 1,
     rngState: rng.state(),
-    events: [{ type: 'orderPlaced', orderId: id, total: summary.total }],
   };
+  // 養蠶用品立即到貨（蠶卵進庫存）；飼養盒擴充超過上限時整張訂單都不成立
+  const granted = grantSilkItems(placed, silkItems);
+  if (granted.events.length > 0) return { ...state, events: granted.events };
+  const events: GameEvent[] = [{ type: 'orderPlaced', orderId: id, total: summary.total }];
+  if (silkItems.length > 0) events.push({ type: 'silkDelivered', items: silkItems });
+  return { ...granted.state, events };
 }
 
 function unboxOrder(state: GameState, orderId: string): GameState {
@@ -136,7 +155,7 @@ function unboxOrder(state: GameState, orderId: string): GameState {
       {
         type: 'unboxed',
         orderId,
-        productIds: order.lines.filter((l) => shippedQty(l) > 0 && !getProduct(l.productId)?.virtual).map((l) => l.productId),
+        productIds: order.lines.filter((l) => shippedQty(l) > 0 && isPhysical(l.productId)).map((l) => l.productId),
       },
     ],
   };
@@ -161,7 +180,8 @@ function cancelOrderItem(state: GameState, orderId: string, productId: string): 
   if (!order) return reject(state, 'unknown_order');
   if (getOrderStatus(order, state.day) === 'delivered') return reject(state, 'order_already_delivered');
   const line = order.lines.find((l) => l.productId === productId);
-  if (!line || activeQty(line) <= 0) return reject(state, 'item_not_returnable');
+  // 養蠶用品結帳時就已經到貨了，不能取消
+  if (!line || activeQty(line) <= 0 || getProduct(productId)?.silk) return reject(state, 'item_not_returnable');
   return refund(state, order, productId, 'cancel');
 }
 
@@ -250,7 +270,7 @@ function applyAction(state: GameState, action: Action): GameState {
     case 'silkSync':
       return silkAction(state, action.today, (s) => ({ state: s, events: [] }));
     case 'silkBuy':
-      return silkAction(state, action.today, (s) => buySilk(s, action.item, action.qty ?? 1, action.today));
+      return silkAction(state, action.today, (s) => buySilk(s, action.item, action.qty ?? 1));
     case 'silkFeed':
       return silkAction(state, action.today, (s) => feedSilkworm(s, action.uid, action.today));
     case 'silkPet':
@@ -259,6 +279,12 @@ function applyAction(state: GameState, action: Action): GameState {
       return silkAction(state, action.today, (s) => sellSilkworm(s, action.uid));
     case 'silkRelease':
       return silkAction(state, action.today, (s) => releaseMoth(s, action.uid));
+    case 'silkCartSet':
+      return withEvents(setSilkCartQty(state, action.item, action.qty));
+    case 'silkCheckout':
+      return silkAction(state, action.today, (s) => silkCheckout(s, action.couponId));
+    case 'silkPlaceEggs':
+      return silkAction(state, action.today, (s) => placeEggs(s, action.kind, action.qty, action.today));
     case 'silkRename':
       return silkAction(state, action.today, (s) => renameSilkworm(s, action.uid, action.name));
     case 'silkSpeedup':
@@ -266,9 +292,9 @@ function applyAction(state: GameState, action: Action): GameState {
     case 'mailSync':
       return withEvents(syncAnnouncements(state, action.today));
     case 'claimMail':
-      return withEvents(claimMail(state, action.mailId, action.today));
+      return withEvents(claimMail(state, action.mailId));
     case 'claimAllMail':
-      return withEvents(claimAllMail(state, action.today));
+      return withEvents(claimAllMail(state));
     case 'spinRoulette':
       return withEvents(spinRoulette(state, action.today));
   }

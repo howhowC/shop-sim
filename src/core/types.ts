@@ -16,6 +16,8 @@ export interface Product {
   fixedPrice?: boolean;
   /** 虛擬商品：可以下單、到貨前可以取消，但開箱後不會變成房間裡的物品（例如補差價） */
   virtual?: boolean;
+  /** 養蠶用品：結帳時立即發到養蠶系統（每件給 qty 個 item），不會進房間，也不能取消或退貨 */
+  silk?: { item: SilkShopItem; qty: number };
 }
 
 export interface FlashSale {
@@ -100,8 +102,8 @@ export interface SilkBreed {
 }
 
 export type SilkEggKind = 'egg' | 'premiumEgg';
-/** speedup：加速券，讓一隻蠶立刻升一階 */
-export type SilkShopItem = SilkEggKind | 'leaf' | 'speedup';
+/** speedup：加速券，讓一隻蠶立刻升一階；habitat：飼養盒擴充 */
+export type SilkShopItem = SilkEggKind | 'leaf' | 'speedup' | 'habitat';
 
 export interface Silkworm {
   uid: number;
@@ -131,6 +133,10 @@ export interface SilkState {
   leaves: number;
   /** 加速券張數 */
   speedups: number;
+  /** 飼養盒擴充了幾次（容量見 silkCapacity()） */
+  expansions: number;
+  /** 還沒放進飼養盒的蠶卵（不佔空位；放進去時才抽品種、開始孵化） */
+  eggStock: Record<SilkEggKind, number>;
   /** 圖鑑；沒出現過的品種不會有 key */
   dex: Record<SilkBreedId, SilkDexEntry>;
 }
@@ -233,6 +239,8 @@ export type RejectReason =
   | 'silk_no_speedups'
   | 'silk_cannot_speedup'
   | 'silk_name_too_long'
+  | 'silk_box_max'
+  | 'silk_no_eggs'
   | 'unknown_mail'
   | 'mail_already_claimed'
   | 'no_mail_to_claim'
@@ -248,6 +256,12 @@ export type GameEvent =
   /** 退款不算收入，所以不走 earn() 的 income 事件 */
   | { type: 'refunded'; kind: 'cancel' | 'return'; orderId: string; productId: ProductId; amount: Money }
   | { type: 'silkBought'; item: SilkShopItem; qty: number; total: Money }
+  /** 從蠶卵庫存放進飼養盒，開始孵化 */
+  | { type: 'silkEggsPlaced'; kind: SilkEggKind; qty: number }
+  /** 養蠶小店購物車結帳（立即到貨） */
+  | { type: 'silkOrderPaid'; total: Money; discount: Money }
+  /** 主商城訂單裡的養蠶用品，結帳時立即送達 */
+  | { type: 'silkDelivered'; items: { item: SilkShopItem; qty: number }[] }
   // 養蠶事件帶上蠶的名字（沒取名是 null），通知才能寫「小白長大了」；
   // 賣掉、放飛後蠶已經不在 state 裡，所以名字要在事件裡帶著，不能讓 UI 再去查
   | { type: 'silkHatched'; uid: number; breed: SilkBreedId; name: string | null }
@@ -283,6 +297,8 @@ export interface GameState {
   inventory: OwnedItem[];
   checkIn: CheckInState;
   silk: SilkState;
+  /** 養蠶小店的購物車（和主商城的 cart 分開；優惠券共用） */
+  silkCart: Partial<Record<SilkShopItem, number>>;
   mail: MailState;
   roulette: RouletteState;
   nextOrderNo: number;

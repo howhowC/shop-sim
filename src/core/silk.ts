@@ -4,6 +4,8 @@
 import {
   SILK_CAPACITY,
   SILK_EGG_WEIGHTS,
+  SILK_EXPANSION_SLOTS,
+  SILK_MAX_EXPANSIONS,
   SILK_FEED_AFFECTION,
   SILK_MAX_AFFECTION,
   SILK_NAME_MAX_LENGTH,
@@ -15,9 +17,12 @@ import {
   SILK_STAGE_MOTH,
 } from './config';
 import { SILK_BREEDS } from '../data/silkBreeds';
+import { couponDiscount, findUsableCoupon } from './market';
 import { createRng, type Rng } from './rng';
 import type {
+  Coupon,
   GameEvent,
+  Money,
   GameState,
   RejectReason,
   SilkBreed,
@@ -42,7 +47,12 @@ export function allSilkBreeds(): readonly SilkBreed[] {
 }
 
 export function createSilkState(): SilkState {
-  return { worms: [], leaves: 0, speedups: 0, dex: {} };
+  return { worms: [], leaves: 0, speedups: 0, expansions: 0, eggStock: { egg: 0, premiumEgg: 0 }, dex: {} };
+}
+
+/** 飼養盒目前的容量（基本容量＋擴充） */
+export function silkCapacity(state: GameState): number {
+  return SILK_CAPACITY + state.silk.expansions * SILK_EXPANSION_SLOTS;
 }
 
 export const isLarva = (w: Silkworm): boolean => w.stage >= 1 && w.stage <= SILK_STAGE_LAST_LARVA;
@@ -147,9 +157,14 @@ export const rejected = (state: GameState, reason: RejectReason): SilkResult => 
   events: [{ type: 'rejected', reason }],
 });
 
-/** 放 n 顆卵進飼養盒（買卵和郵件共用）；放不下就整批拒絕。不扣錢。 */
-export function addEggs(state: GameState, kind: SilkEggKind, n: number, today: string): SilkResult {
-  if (state.silk.worms.length + n > SILK_CAPACITY) return rejected(state, 'silk_capacity_full');
+/**
+ * 從蠶卵庫存拿 n 顆放進飼養盒，開始孵化（隔天孵出來）。品種在這時才抽。
+ * 庫存不夠或飼養盒放不下就整批拒絕。
+ */
+export function placeEggs(state: GameState, kind: SilkEggKind, qty: number, today: string): SilkResult {
+  const n = Math.floor(qty);
+  if (!(n >= 1) || state.silk.eggStock[kind] < n) return rejected(state, 'silk_no_eggs');
+  if (state.silk.worms.length + n > silkCapacity(state)) return rejected(state, 'silk_capacity_full');
   const rng = createRng(state.rngState);
   const eggs: Silkworm[] = Array.from({ length: n }, (_, i) => ({
     uid: state.nextUid + i,
@@ -165,9 +180,13 @@ export function addEggs(state: GameState, kind: SilkEggKind, n: number, today: s
       ...state,
       rngState: rng.state(),
       nextUid: state.nextUid + n,
-      silk: { ...state.silk, worms: [...state.silk.worms, ...eggs] },
+      silk: {
+        ...state.silk,
+        worms: [...state.silk.worms, ...eggs],
+        eggStock: { ...state.silk.eggStock, [kind]: state.silk.eggStock[kind] - n },
+      },
     },
-    events: [],
+    events: [{ type: 'silkEggsPlaced', kind, qty: n }],
   };
 }
 
@@ -177,20 +196,106 @@ export function addSupplies(state: GameState, item: 'leaf' | 'speedup', n: numbe
   return { ...state, silk: { ...state.silk, [field]: state.silk[field] + n } };
 }
 
-export function buySilk(state: GameState, item: SilkShopItem, qty: number, today: string): SilkResult {
+/**
+ * 發放養蠶用品（小店、主商城、郵件、輪盤共用）；發不出去（飼養盒擴充到上限）時回傳拒絕事件，state 不變。
+ * 蠶卵先收進庫存，不佔飼養盒空位。不扣錢。
+ */
+export function grantSilkItem(state: GameState, item: SilkShopItem, qty: number): SilkResult {
+  switch (item) {
+    case 'leaf':
+    case 'speedup':
+      return { state: addSupplies(state, item, qty), events: [] };
+    case 'egg':
+    case 'premiumEgg':
+      return { state: { ...state, silk: { ...state.silk, eggStock: { ...state.silk.eggStock, [item]: state.silk.eggStock[item] + qty } } }, events: [] };
+    case 'habitat':
+      if (state.silk.expansions + qty > SILK_MAX_EXPANSIONS) return rejected(state, 'silk_box_max');
+      return { state: { ...state, silk: { ...state.silk, expansions: state.silk.expansions + qty } }, events: [] };
+  }
+}
+
+/** 依序發放多項養蠶用品；任何一項失敗就全部不發 */
+export function grantSilkItems(state: GameState, items: readonly { item: SilkShopItem; qty: number }[]): SilkResult {
+  let s = state;
+  for (const { item, qty } of items) {
+    const r = grantSilkItem(s, item, qty);
+    if (r.events.length > 0) return { state, events: r.events };
+    s = r.state;
+  }
+  return { state: s, events: [] };
+}
+
+/** 直接買（不經過購物車）；測試和內部用，UI 用購物車 */
+export function buySilk(state: GameState, item: SilkShopItem, qty: number): SilkResult {
   if (!(item in SILK_PRICES)) return rejected(state, 'silk_unknown_item');
   const n = Math.floor(qty);
   if (!(n >= 1)) return rejected(state, 'silk_unknown_item');
   const total = SILK_PRICES[item] * n;
   if (total > state.money) return rejected(state, 'insufficient_funds');
+  const r = grantSilkItem({ ...state, money: state.money - total }, item, n);
+  if (r.events.length > 0) return { state, events: r.events };
+  return { state: r.state, events: [{ type: 'silkBought', item, qty: n, total }] };
+}
 
-  const bought: GameEvent = { type: 'silkBought', item, qty: n, total };
-  const paid = { ...state, money: state.money - total };
-  if (item === 'leaf' || item === 'speedup') return { state: addSupplies(paid, item, n), events: [bought] };
+// ── 養蠶小店購物車（優惠券和主商城共用）──
 
-  const r = addEggs(paid, item, n, today);
-  if (r.events.length > 0) return rejected(state, 'silk_capacity_full');
-  return { state: r.state, events: [bought] };
+export interface SilkCartLine {
+  item: SilkShopItem;
+  unitPrice: Money;
+  qty: number;
+}
+
+export interface SilkCartSummary {
+  lines: SilkCartLine[];
+  subtotal: Money;
+  discount: Money;
+  total: Money;
+}
+
+const SHOP_ORDER: readonly SilkShopItem[] = ['egg', 'premiumEgg', 'leaf', 'speedup', 'habitat'];
+
+/** 計算養蠶購物車金額；UI 顯示和結帳都用這個 */
+export function summarizeSilkCart(state: GameState, coupon?: Coupon): SilkCartSummary {
+  const lines = SHOP_ORDER.filter((item) => (state.silkCart[item] ?? 0) > 0).map((item) => ({
+    item,
+    unitPrice: SILK_PRICES[item],
+    qty: state.silkCart[item]!,
+  }));
+  const subtotal = lines.reduce((sum, l) => sum + l.unitPrice * l.qty, 0);
+  const discount = couponDiscount(subtotal, coupon);
+  return { lines, subtotal, discount, total: subtotal - discount };
+}
+
+/** 設定養蠶購物車某一項的數量；0 以下代表移除 */
+export function setSilkCartQty(state: GameState, item: SilkShopItem, qty: number): SilkResult {
+  if (!(item in SILK_PRICES)) return rejected(state, 'silk_unknown_item');
+  const silkCart = { ...state.silkCart };
+  if (qty <= 0) delete silkCart[item];
+  else silkCart[item] = Math.floor(qty);
+  return { state: { ...state, silkCart }, events: [] };
+}
+
+/** 養蠶小店結帳：可用優惠券，付款後立即到貨（蠶卵進庫存）；飼養盒擴充超過上限就整筆拒絕 */
+export function silkCheckout(state: GameState, couponId: string | undefined): SilkResult {
+  let coupon: Coupon | undefined;
+  if (couponId !== undefined) {
+    coupon = findUsableCoupon(state, couponId);
+    if (!coupon) return rejected(state, 'invalid_coupon');
+  }
+  const sum = summarizeSilkCart(state, coupon);
+  if (sum.lines.length === 0) return rejected(state, 'empty_cart');
+  if (coupon && sum.discount === 0) return rejected(state, 'coupon_threshold_not_met');
+  if (sum.total > state.money) return rejected(state, 'insufficient_funds');
+
+  const paid: GameState = {
+    ...state,
+    money: state.money - sum.total,
+    silkCart: {},
+    coupons: coupon ? state.coupons.filter((c) => c.id !== coupon.id) : state.coupons,
+  };
+  const r = grantSilkItems(paid, sum.lines);
+  if (r.events.length > 0) return { state, events: r.events };
+  return { state: r.state, events: [{ type: 'silkOrderPaid', total: sum.total, discount: sum.discount }] };
 }
 
 function updateWorm(state: GameState, w: Silkworm): GameState {

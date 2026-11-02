@@ -31,16 +31,19 @@ export function rollPrices(day: number, rng: Rng): Record<ProductId, Money> {
 
 /**
  * 舊存檔裡沒有之後才新增的商品價格，讀檔後用基準價補上（不加波動，所以不用動到 rng）。
- * 這樣新增商品時不需要改存檔版本。
+ * 固定價商品的價格不對（例如商品後來改成固定價）也一起校正成基準價。
+ * 這樣新增商品、改成固定價時不需要改存檔版本。
  */
 export function fillMissingPrices(state: GameState): GameState {
-  const missing = allProducts().filter((p) => state.prices[p.id] === undefined);
+  const missing = allProducts().filter(
+    (p) => state.prices[p.id] === undefined || (p.fixedPrice && state.prices[p.id] !== p.basePrice),
+  );
   if (missing.length === 0) return state;
   const prices = { ...state.prices };
   const prevPrices = { ...state.prevPrices };
   for (const p of missing) {
     prices[p.id] = p.fixedPrice ? p.basePrice : Math.max(10, round10(trendPrice(p, state.day)));
-    prevPrices[p.id] ??= prices[p.id];
+    prevPrices[p.id] = p.fixedPrice ? p.basePrice : (prevPrices[p.id] ?? prices[p.id]);
   }
   return { ...state, prices, prevPrices };
 }
@@ -54,6 +57,16 @@ export function maybeDropCoupon(day: number, rng: Rng, id: string): Coupon | nul
   if (rng.next() >= COUPON_DROP_CHANCE) return null;
   const t = rng.pick(COUPON_TEMPLATES);
   return { id, ...t, expiresDay: day + COUPON_LIFETIME_DAYS - 1 };
+}
+
+/** 找出可以使用（沒過期）的優惠券；找不到回傳 undefined */
+export function findUsableCoupon(state: GameState, couponId: string): Coupon | undefined {
+  return state.coupons.find((c) => c.id === couponId && c.expiresDay >= state.day);
+}
+
+/** 小計達到門檻才折抵；主商城和養蠶小店的購物車共用 */
+export function couponDiscount(subtotal: Money, coupon?: Coupon): Money {
+  return coupon && subtotal >= coupon.minSpend ? coupon.discount : 0;
 }
 
 /** 實際售價：牌價再套用限時特價 */

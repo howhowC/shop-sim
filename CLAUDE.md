@@ -28,7 +28,7 @@ src/
     market.ts           每日價格、限時特價、優惠券掉落
     orders.ts           物流狀態（由日期推算）、取消與退貨的退款計算（優惠券依比例分攤）
     inventory.ts        玩家擁有的物品
-    silk.ts             養蠶小遊戲：買卵、餵食、摸摸、依現實日期成長（syncSilk）、加速券、放飛
+    silk.ts             養蠶小遊戲：飼養盒容量、蠶卵庫存與放卵（placeEggs）、養蠶購物車與結帳、grantSilkItem（發放養蠶用品的唯一入口）、餵食、成長、加速券、放飛
     roulette.ts         幸運輪盤：每天 3 次（現實日期）、抽獎、發獎（飼養盒滿了改寄信箱）
     mail.ts             郵件：公告信、隨機來信、里程碑來信（reducer 每個成功的 action 後檢查）、領取附件
     income/             收入來源（checkin.ts 每日簽到、resale.ts 轉賣、silk.ts 賣蠶繭）；都透過 earn() 入帳
@@ -46,6 +46,7 @@ src/
     App.tsx             遊戲狀態、分頁、通知、自動存檔、重新開始
     format.ts           金額格式、事件與錯誤代碼 → 中文訊息
     ConfirmDialog.tsx   通用確認視窗（危險操作前使用）
+    CheckoutSummary.tsx 選優惠券＋金額小計（主商城和養蠶小店的購物車共用）
     UnboxModal.tsx      開箱動畫
     SilkwormSvg.tsx     蠶寶寶造型（SVG，依品種顏色和階段畫卵／幼蟲／繭／蛾）
     views/              各分頁畫面
@@ -76,7 +77,7 @@ src/
 只改 `src/core/config.ts`。改完跑 `npm test`，有些測試會依數值計算，可能需要跟著更新。
 
 ### 新增商品
-在 `src/data/products.ts` 加一筆。`id` 用英文 kebab-case 而且不能重複；`category` 必須是 `types.ts` 裡 `Category` 的其中一個。
+在 `src/data/products.ts` 加一筆。養蠶用品加上 `silk: { item, qty }`、`fixedPrice: true`，價格要等於 `SILK_PRICES[item] × qty`（測試會檢查），結帳時會立即送進養蠶系統。`id` 用英文 kebab-case 而且不能重複；`category` 必須是 `types.ts` 裡 `Category` 的其中一個。
 新增分類時，`types.ts` 的 `Category` 和 `ui/views/ShopView.tsx` 的 `CATEGORIES` 兩邊都要加。
 
 ### 新增玩家行為（action）

@@ -7,7 +7,7 @@ import { getProduct } from './catalog';
 import { MAIL_KEEP_CLAIMED, MAIL_RANDOM_CHANCE } from './config';
 import { earn } from './income/earn';
 import type { Rng } from './rng';
-import { addEggs, addSupplies, rejected, type SilkResult } from './silk';
+import { grantSilkItem, rejected, type SilkResult } from './silk';
 import type { GameEvent, GameState, Mail, MailState, MailTemplate, MilestoneCondition, OwnedItem } from './types';
 
 // 輪盤獎品也是信件模板：飼養盒放不下時改寄到信箱
@@ -92,7 +92,7 @@ export function deliverMilestones(state: GameState): GameState {
  * 把附件全部發給玩家（郵件和輪盤共用）；有一項發不出去（飼養盒滿了）就全部不發，回傳拒絕事件。
  * sourceId 用來產生優惠券 id，要在整個遊戲中唯一。
  */
-export function giveRewards(state: GameState, template: MailTemplate, sourceId: string, today: string): SilkResult {
+export function giveRewards(state: GameState, template: MailTemplate, sourceId: string): SilkResult {
   let s = state;
   for (const [i, r] of template.rewards.entries()) {
     switch (r.kind) {
@@ -103,14 +103,12 @@ export function giveRewards(state: GameState, template: MailTemplate, sourceId: 
         s = { ...s, coupons: [...s.coupons, { id: `${sourceId}-${i}`, minSpend: r.minSpend, discount: r.discount, expiresDay: s.day + r.validDays - 1 }] };
         break;
       case 'silk':
-        if (r.item === 'leaf' || r.item === 'speedup') {
-          s = addSupplies(s, r.item, r.qty);
-        } else {
-          const eggs = addEggs(s, r.item, r.qty, today);
-          if (eggs.events.length > 0) return { state, events: eggs.events };
-          s = eggs.state;
-        }
+      {
+        const granted = grantSilkItem(s, r.item, r.qty);
+        if (granted.events.length > 0) return { state, events: granted.events };
+        s = granted.state;
         break;
+      }
       case 'product': {
         const product = getProduct(r.productId);
         if (!product || product.virtual) break;
@@ -128,12 +126,12 @@ export function giveRewards(state: GameState, template: MailTemplate, sourceId: 
   return { state: s, events: [] };
 }
 
-export function claimMail(state: GameState, mailId: string, today: string): SilkResult {
+export function claimMail(state: GameState, mailId: string): SilkResult {
   const mail = state.mail.inbox.find((m) => m.id === mailId);
   const template = mail && getMailTemplate(mail.templateId);
   if (!mail || !template) return rejected(state, 'unknown_mail');
   if (mail.claimed) return rejected(state, 'mail_already_claimed');
-  const r = giveRewards(state, template, mail.id, today);
+  const r = giveRewards(state, template, mail.id);
   if (r.events.length > 0) return r;
   const inbox = r.state.mail.inbox.map((m) => (m.id === mailId ? { ...m, claimed: true } : m));
   return {
@@ -143,14 +141,14 @@ export function claimMail(state: GameState, mailId: string, today: string): Silk
 }
 
 /** 依收到的順序領取所有沒領的信；發不出去的信跳過、留在信箱 */
-export function claimAllMail(state: GameState, today: string): SilkResult {
+export function claimAllMail(state: GameState): SilkResult {
   const pending = state.mail.inbox.filter((m) => !m.claimed);
   if (pending.length === 0) return rejected(state, 'no_mail_to_claim');
   let s = state;
   const events: GameEvent[] = [];
   let lastFailure: GameEvent | undefined;
   for (const m of pending) {
-    const r = claimMail(s, m.id, today);
+    const r = claimMail(s, m.id);
     if (r.events.some((e) => e.type === 'rejected')) lastFailure = r.events[0];
     else {
       s = r.state;

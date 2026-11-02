@@ -1,11 +1,8 @@
-import { useState } from 'react';
 import { getMailTemplate } from '../../core';
 import type { Action, GameState, Mail } from '../../core';
-import { localDateString, rewardText } from '../format';
+import { rewardText } from '../format';
 
 export function MailView({ state, act }: { state: GameState; act: (a: Action) => void }) {
-  // 信裡的蠶卵用今天的現實日期放進飼養盒（同 SilkView：進入分頁時取一次）
-  const [today] = useState(() => localDateString(new Date()));
   const inbox = [...state.mail.inbox].reverse();
   const pending = inbox.filter((m) => !m.claimed).length;
 
@@ -14,7 +11,7 @@ export function MailView({ state, act }: { state: GameState; act: (a: Action) =>
       <div className="spread">
         <h2>郵件</h2>
         {pending > 0 && (
-          <button className="btn" onClick={() => act({ type: 'claimAllMail', today })}>
+          <button className="btn" onClick={() => act({ type: 'claimAllMail' })}>
             全部領取（{pending}）
           </button>
         )}
@@ -25,7 +22,7 @@ export function MailView({ state, act }: { state: GameState; act: (a: Action) =>
       ) : (
         <ul className="mail-list">
           {inbox.map((m) => (
-            <MailCard key={m.id} mail={m} onClaim={() => act({ type: 'claimMail', mailId: m.id, today })} />
+            <MailCard key={m.id} mail={m} onClaim={() => act({ type: 'claimMail', mailId: m.id })} />
           ))}
         </ul>
       )}

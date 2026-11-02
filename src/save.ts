@@ -12,7 +12,7 @@ import { fillMissingPrices } from './core';
 import type { GameState } from './core';
 
 export const SAVE_KEY = 'shop-sim:save';
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 9;
 
 interface SaveFile {
   version: number;
@@ -62,6 +62,17 @@ const MIGRATIONS: Record<number, Migration> = {
   }),
   // v7：新增幸運輪盤
   6: (old) => ({ ...old, roulette: { date: null, spinsToday: 0, lastPrizeId: null, totalSpins: 0 } }),
+  // v8：養蠶小店有自己的購物車，飼養盒可以擴充
+  7: (old) => ({
+    ...old,
+    silkCart: {},
+    silk: isRecord(old.silk) ? { ...old.silk, expansions: 0 } : old.silk,
+  }),
+  // v9：蠶卵先收進庫存，玩家自己決定什麼時候放進飼養盒
+  8: (old) => ({
+    ...old,
+    silk: isRecord(old.silk) ? { ...old.silk, eggStock: { egg: 0, premiumEgg: 0 } } : old.silk,
+  }),
 };
 
 // ── 純函式（不碰 localStorage，方便測試）──
@@ -114,6 +125,9 @@ function looksLikeGameState(s: Record<string, unknown>): s is Record<string, unk
     typeof s.silk.leaves === 'number' &&
     isRecord(s.silk.dex) &&
     typeof s.silk.speedups === 'number' &&
+    typeof s.silk.expansions === 'number' &&
+    isRecord(s.silk.eggStock) &&
+    isRecord(s.silkCart) &&
     isRecord(s.mail) &&
     Array.isArray(s.mail.inbox) &&
     Array.isArray(s.mail.delivered) &&

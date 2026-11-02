@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { getProduct, shippedQty } from '../core';
+import { getProduct, isPhysical, shippedQty } from '../core';
 import type { Order, Product } from '../core';
 
 interface Props {
@@ -17,9 +17,9 @@ export function UnboxModal({ order, onOpen, onClose, onBack }: Props) {
   useEffect(() => boxRef.current?.focus(), []);
 
   const products = order.lines
-    .filter((l) => shippedQty(l) > 0)
+    .filter((l) => shippedQty(l) > 0 && isPhysical(l.productId))
     .map((l) => getProduct(l.productId))
-    .filter((p): p is Product => p !== undefined && !p.virtual);
+    .filter((p): p is Product => p !== undefined);
 
   const doOpen = () => {
     if (open) return;

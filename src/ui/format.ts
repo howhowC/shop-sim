@@ -37,6 +37,8 @@ const REJECT_TEXT: Record<RejectReason, string> = {
   silk_no_speedups: '沒有加速券了，去養蠶小店買吧',
   silk_cannot_speedup: '已經是蛾了，不能再長大囉',
   silk_name_too_long: '名字太長了，最多 10 個字',
+  silk_box_max: '飼養盒已經擴充到最大了',
+  silk_no_eggs: '蠶卵庫存不夠',
   unknown_mail: '找不到這封信',
   mail_already_claimed: '這封信已經領過了',
   no_mail_to_claim: '沒有可以領取的信',
@@ -48,6 +50,7 @@ export const SILK_ITEM_NAME: Record<SilkShopItem, string> = {
   premiumEgg: '精選蠶卵',
   leaf: '桑葉',
   speedup: '加速券',
+  habitat: '飼養盒擴充',
 };
 
 const INCOME_TEXT: Record<IncomeSource, (amount: string) => string> = {
@@ -107,6 +110,12 @@ export function eventText(ev: GameEvent): string {
       return `${ev.kind === 'cancel' ? '已取消' : '已退貨'}：${productName(ev.productId)}，退款 ${fmt(ev.amount)}`;
     case 'silkBought':
       return `買了 ${SILK_ITEM_NAME[ev.item]} ×${ev.qty}，付款 ${fmt(ev.total)}`;
+    case 'silkOrderPaid':
+      return `結帳成功，付款 ${fmt(ev.total)}${ev.discount > 0 ? `（折抵 ${fmt(ev.discount)}）` : ''}，已到貨`;
+    case 'silkEggsPlaced':
+      return `放了 ${ev.qty} 顆${SILK_ITEM_NAME[ev.kind]}進飼養盒，明天就會孵化`;
+    case 'silkDelivered':
+      return `養蠶用品已送達：${ev.items.map((i) => `${SILK_ITEM_NAME[i.item]} ×${i.qty}`).join('、')}`;
     case 'silkHatched':
       return ev.name === null ? `孵化了！是${breedName(ev.breed)}` : `${ev.name}孵化了！是${breedName(ev.breed)}`;
     case 'silkGrew':

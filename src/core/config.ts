@@ -53,10 +53,13 @@ export const SILK_STAGE_EGG = 0;
 export const SILK_STAGE_LAST_LARVA = 5;
 export const SILK_STAGE_COCOON = 6;
 export const SILK_STAGE_MOTH = 7;
-/** 飼養盒最多同時養幾隻（含卵、繭、蛾） */
+/** 飼養盒一開始的容量（含卵、繭、蛾）；擴充後的容量見 silk.ts 的 silkCapacity() */
 export const SILK_CAPACITY = 60;
 /** 小店價格（元） */
-export const SILK_PRICES = { egg: 60, premiumEgg: 180, leaf: 10, speedup: 50 } as const;
+export const SILK_PRICES = { egg: 60, premiumEgg: 180, leaf: 10, speedup: 50, habitat: 120 } as const;
+/** 飼養盒擴充：每次增加幾格、最多擴充幾次 */
+export const SILK_EXPANSION_SLOTS = 10;
+export const SILK_MAX_EXPANSIONS = 4;
 /** 親密度：餵食、摸摸各加多少；上限 */
 export const SILK_FEED_AFFECTION = 10;
 export const SILK_PET_AFFECTION = 5;

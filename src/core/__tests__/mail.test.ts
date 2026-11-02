@@ -74,7 +74,7 @@ describe('郵件：里程碑', () => {
 describe('郵件：領取', () => {
   it('金錢入帳，信標記為已領取', () => {
     const s0 = withMail(createInitialState(1), 'thanks-shop');
-    const s = run(s0, { type: 'claimMail', mailId: 'M99', today: TODAY });
+    const s = run(s0, { type: 'claimMail', mailId: 'M99' });
     expect(s.money).toBe(s0.money + 150);
     expect(s.mail.inbox[0].claimed).toBe(true);
     expect(s.events).toEqual([{ type: 'mailClaimed', mailId: 'M99', templateId: 'thanks-shop' }]);
@@ -83,45 +83,41 @@ describe('郵件：領取', () => {
 
   it('優惠券從領取當天起算有效天數', () => {
     const s0 = withMail(run(createInitialState(1), { type: 'nextDay' }), 'coupon-gift');
-    const s = run(s0, { type: 'claimMail', mailId: 'M99', today: TODAY });
+    const s = run(s0, { type: 'claimMail', mailId: 'M99' });
     const coupon = s.coupons.find((c) => c.id.startsWith('M99'))!;
     expect(coupon).toMatchObject({ minSpend: 300, discount: 60, expiresDay: s0.day + 2 });
   });
 
   it('桑葉、加速券、商品都會發到對的地方', () => {
     let s = withMail(createInitialState(1), 'farmer-leaves');
-    s = run(s, { type: 'claimMail', mailId: 'M99', today: TODAY });
+    s = run(s, { type: 'claimMail', mailId: 'M99' });
     expect(s.silk.leaves).toBe(5);
 
-    s = run(withMail(createInitialState(1), 'speedup-trial'), { type: 'claimMail', mailId: 'M99', today: TODAY });
+    s = run(withMail(createInitialState(1), 'speedup-trial'), { type: 'claimMail', mailId: 'M99' });
     expect(s.silk.speedups).toBe(1);
 
-    s = run(withMail(createInitialState(1), 'mystery-sticker'), { type: 'claimMail', mailId: 'M99', today: TODAY });
+    s = run(withMail(createInitialState(1), 'mystery-sticker'), { type: 'claimMail', mailId: 'M99' });
     expect(s.inventory).toEqual([{ uid: 1, productId: 'sticker', paidPrice: 0, acquiredDay: 1 }]);
   });
 
-  it('蠶卵放進飼養盒；飼養盒滿了整封拒絕，信還在', () => {
-    let s = run(withMail(createInitialState(1), 'first-moth'), { type: 'claimMail', mailId: 'M99', today: TODAY });
-    expect(s.silk.worms).toHaveLength(1);
-    expect(s.silk.worms[0]).toMatchObject({ stage: 0, stageSince: TODAY });
-
-    const full = run(createInitialState(1), { type: 'silkBuy', item: 'egg', qty: SILK_CAPACITY, today: TODAY });
-    s = run(withMail(full, 'first-moth'), { type: 'claimMail', mailId: 'M99', today: TODAY });
-    expect(s.events).toEqual([{ type: 'rejected', reason: 'silk_capacity_full' }]);
-    expect(s.mail.inbox.find((m) => m.id === 'M99')!.claimed).toBe(false);
+  it('蠶卵收進庫存，飼養盒滿了也能領', () => {
+    const s0 = run(createInitialState(1), { type: 'silkBuy', item: 'egg', qty: SILK_CAPACITY, today: TODAY }, { type: 'silkPlaceEggs', kind: 'egg', qty: SILK_CAPACITY, today: TODAY });
+    const s = run(withMail(s0, 'first-moth'), { type: 'claimMail', mailId: 'M99' });
+    expect(s.silk.eggStock.premiumEgg).toBe(1);
+    expect(s.silk.worms).toHaveLength(SILK_CAPACITY);
   });
 
   it('已領的信不能再領', () => {
-    const s = run(withMail(createInitialState(1), 'thanks-shop', true), { type: 'claimMail', mailId: 'M99', today: TODAY });
+    const s = run(withMail(createInitialState(1), 'thanks-shop', true), { type: 'claimMail', mailId: 'M99' });
     expect(s.events).toEqual([{ type: 'rejected', reason: 'mail_already_claimed' }]);
   });
 
-  it('全部領取：發得出去的都領，飼養盒滿了的那封留著', () => {
-    const full = run(createInitialState(1), { type: 'silkBuy', item: 'egg', qty: SILK_CAPACITY, today: TODAY });
+  it('全部領取：所有沒領的信一次領完', () => {
+    const base = createInitialState(1);
     const s0: GameState = {
-      ...full,
+      ...base,
       mail: {
-        ...full.mail,
+        ...base.mail,
         inbox: [
           { id: 'M1', templateId: 'thanks-shop', receivedDay: 1, claimed: false },
           { id: 'M2', templateId: 'first-moth', receivedDay: 1, claimed: false },
@@ -129,14 +125,15 @@ describe('郵件：領取', () => {
         ],
       },
     };
-    const s = run(s0, { type: 'claimAllMail', today: TODAY });
-    expect(s.mail.inbox.map((m) => m.claimed)).toEqual([true, false, true]);
+    const s = run(s0, { type: 'claimAllMail' });
+    expect(s.mail.inbox.map((m) => m.claimed)).toEqual([true, true, true]);
     expect(s.money).toBe(s0.money + 150);
-    expect(s.events).toContainEqual({ type: 'rejected', reason: 'silk_capacity_full' });
+    expect(s.silk).toMatchObject({ leaves: 5, eggStock: { premiumEgg: 1 } });
+    expect(s.events.filter((e) => e.type === 'mailClaimed')).toHaveLength(3);
   });
 
   it('沒有信可以領時，全部領取被拒絕', () => {
-    const s = run(createInitialState(1), { type: 'claimAllMail', today: TODAY });
+    const s = run(createInitialState(1), { type: 'claimAllMail' });
     expect(s.events).toEqual([{ type: 'rejected', reason: 'no_mail_to_claim' }]);
   });
 });

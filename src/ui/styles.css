@@ -267,3 +267,12 @@ nav.tabs { border-top: 1px solid var(--line); }
 .silk-name-form input { width: 100%; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); text-align: center; font: inherit; }
 .silk-name-form input[aria-invalid='true'] { border-color: var(--bad); }
 .silk-name-form .bad { color: var(--bad); }
+.silk-sort { display: flex; align-items: center; gap: 6px; align-self: flex-end; color: var(--leaf-ink); }
+.silk-sort select { padding: 3px 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; }
+.silk-shop li { grid-template-columns: 32px 1fr auto; }
+.silk-checkout { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.silk-sort label { display: flex; align-items: center; gap: 6px; }
+.silk-sort-dir { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-weight: 700; cursor: pointer; }
+.silk-eggs { display: flex; flex-direction: column; gap: 6px; background: var(--surface); border-radius: 12px; padding: 10px 12px; }
+.silk-egg-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.silk-egg-row span { margin-right: auto; }

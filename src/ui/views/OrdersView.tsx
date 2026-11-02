@@ -62,6 +62,7 @@ function statusText(o: Order, delivered: boolean, cancelled: boolean, daysLeft: 
   if (cancelled) return '已全部取消';
   if (!delivered) return `預計第 ${o.deliveryDay} 天到貨`;
   if (!o.opened) return '已送達，等你開箱';
+  if (o.lines.every((l) => getProduct(l.productId)?.silk)) return '養蠶用品已送進飼養盒';
   if (daysLeft === null) return '已開箱';
   return daysLeft === 0 ? '已開箱・今天是鑑賞期最後一天' : `已開箱・鑑賞期剩 ${daysLeft} 天`;
 }
@@ -143,7 +144,8 @@ function LineRow({ order, line, state, act, onReturn, canCancel, canReturn }: Li
         {p?.icon} {p?.name ?? line.productId} ×{line.qty}
       </span>
       {notes.length > 0 && <span className="small muted">{notes.join('・')}</span>}
-      {canCancel && left > 0 && (
+      {p?.silk && <span className="small muted">已送進飼養盒</span>}
+      {canCancel && left > 0 && !p?.silk && (
         <button className="btn ghost small" onClick={() => act({ type: 'cancelOrderItem', orderId: order.id, productId: line.productId })}>
           取消 1 件，退 {fmt(refund)}
         </button>

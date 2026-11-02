@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ROULETTE_PRIZES } from '../../data/roulette';
-import { ROULETTE_DAILY_SPINS, ROULETTE_PRICE, SILK_CAPACITY } from '../config';
+import { ROULETTE_DAILY_SPINS, ROULETTE_PRICE } from '../config';
 import { createInitialState } from '../reducer';
 import { prizeValue, spinsLeft } from '../roulette';
 import type { GameState } from '../types';
@@ -68,14 +68,9 @@ describe('幸運輪盤：抽獎', () => {
     expect(s.money).toBe(s0.money - ROULETTE_PRICE + 150);
   });
 
-  it('飼養盒滿了抽到蠶卵，獎品改寄到信箱', () => {
-    const seed = seedFor('roulette-eggs');
-    const full = run(createInitialState(seed), { type: 'silkBuy', item: 'egg', qty: SILK_CAPACITY, today: D1 });
-    // 買卵會用掉亂數，所以重新把 rngState 設回初始值，確保抽到蠶卵
-    const s0: GameState = { ...full, rngState: createInitialState(seed).rngState };
-    const s = run(s0, spin());
-    expect(s.events[0]).toEqual({ type: 'rouletteWon', prizeId: 'roulette-eggs', toMail: true });
-    expect(s.silk.worms).toHaveLength(SILK_CAPACITY);
-    expect(s.mail.inbox.at(-1)).toMatchObject({ templateId: 'roulette-eggs', claimed: false });
+  it('抽中蠶卵收進庫存，飼養盒滿了也一樣', () => {
+    const s = run(createInitialState(seedFor('roulette-eggs')), spin());
+    expect(s.events[0]).toEqual({ type: 'rouletteWon', prizeId: 'roulette-eggs', toMail: false });
+    expect(s.silk.eggStock.egg).toBe(2);
   });
 });

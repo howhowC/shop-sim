@@ -42,6 +42,13 @@ function withWorm(s: GameState, w: Partial<Silkworm>, leaves = 10): GameState {
 
 const worm = (s: GameState) => s.silk.worms[0];
 
+/** 買卵並放進飼養盒（蠶卵買了會先進庫存） */
+const eggs = (kind: 'egg' | 'premiumEgg', qty: number, today: string) =>
+  [
+    { type: 'silkBuy', item: kind, qty, today },
+    { type: 'silkPlaceEggs', kind, qty, today },
+  ] as const;
+
 describe('養蠶：品種資料', () => {
   it('每個稀有度都至少有一個品種，品種 id 不重複', () => {
     const breeds = allSilkBreeds();
@@ -70,25 +77,42 @@ describe('養蠶：品種資料', () => {
 });
 
 describe('養蠶：小店', () => {
-  it('買卵扣錢、放進飼養盒、品種已抽好', () => {
+  it('買卵扣錢、先收進庫存，不佔飼養盒空位', () => {
     const s0 = createInitialState(1);
     const s = run(s0, { type: 'silkBuy', item: 'egg', qty: 2, today: D1 });
     expect(s.money).toBe(s0.money - SILK_PRICES.egg * 2);
+    expect(s.silk.eggStock).toEqual({ egg: 2, premiumEgg: 0 });
+    expect(s.silk.worms).toHaveLength(0);
+  });
+
+  it('飼養盒滿了也能買卵（收進庫存）', () => {
+    const s = run(createInitialState(1), { type: 'silkBuy', item: 'egg', qty: SILK_CAPACITY + 5, today: D1 });
+    expect(s.silk.eggStock.egg).toBe(SILK_CAPACITY + 5);
+  });
+
+  it('放進飼養盒：扣庫存、抽品種、當天開始孵化', () => {
+    const s0 = run(createInitialState(1), { type: 'silkBuy', item: 'egg', qty: 3, today: D1 });
+    const s = run(s0, { type: 'silkPlaceEggs', kind: 'egg', qty: 2, today: D1 });
+    expect(s.silk.eggStock.egg).toBe(1);
     expect(s.silk.worms).toHaveLength(2);
     expect(s.silk.worms.every((w) => w.stage === 0 && w.stageSince === D1)).toBe(true);
     expect(s.silk.worms.every((w) => getSilkBreed(w.breed) !== undefined)).toBe(true);
     expect(s.nextUid).toBe(s0.nextUid + 2);
+    expect(s.events).toEqual([{ type: 'silkEggsPlaced', kind: 'egg', qty: 2 }]);
   });
 
   it('同一個 seed 抽到相同品種', () => {
-    const a = run(createInitialState(5), { type: 'silkBuy', item: 'premiumEgg', qty: 3, today: D1 });
-    const b = run(createInitialState(5), { type: 'silkBuy', item: 'premiumEgg', qty: 3, today: D1 });
-    expect(a.silk.worms.map((w) => w.breed)).toEqual(b.silk.worms.map((w) => w.breed));
+    const place = (seed: number) =>
+      run(createInitialState(seed), eggs('premiumEgg', 3, D1)[0], eggs('premiumEgg', 3, D1)[1]).silk.worms.map((w) => w.breed);
+    expect(place(5)).toHaveLength(3);
+    expect(place(5)).toEqual(place(5));
   });
 
-  it('超過飼養盒容量會被拒絕，狀態不變', () => {
-    const s0 = run(createInitialState(1), { type: 'silkBuy', item: 'egg', qty: SILK_CAPACITY, today: D1 });
-    const s = run(s0, { type: 'silkBuy', item: 'egg', today: D1 });
+  it('庫存不夠或飼養盒放不下，放卵會被拒絕，狀態不變', () => {
+    const s0 = run(createInitialState(1), { type: 'silkBuy', item: 'egg', qty: SILK_CAPACITY + 1, today: D1 });
+    let s = run(s0, { type: 'silkPlaceEggs', kind: 'premiumEgg', qty: 1, today: D1 });
+    expect(s.events).toEqual([{ type: 'rejected', reason: 'silk_no_eggs' }]);
+    s = run(s0, { type: 'silkPlaceEggs', kind: 'egg', qty: SILK_CAPACITY + 1, today: D1 });
     expect(s.events).toEqual([{ type: 'rejected', reason: 'silk_capacity_full' }]);
     expect({ ...s, events: [] }).toEqual({ ...s0, events: [] });
   });
@@ -109,7 +133,7 @@ describe('養蠶：小店', () => {
 
 describe('養蠶：成長', () => {
   it('同一天不會孵化，隔天孵化並登記圖鑑', () => {
-    let s = run(createInitialState(1), { type: 'silkBuy', item: 'egg', today: D1 });
+    let s = run(createInitialState(1), ...eggs('egg', 1, D1));
     s = run(s, { type: 'silkSync', today: D1 });
     expect(worm(s).stage).toBe(0);
     s = run(s, { type: 'silkSync', today: D2 });
@@ -150,7 +174,7 @@ describe('養蠶：成長', () => {
 
   it('從卵到蛾：每天餵食，第 8 天羽化並登記圖鑑', () => {
     let s = run(createInitialState(1), { type: 'silkBuy', item: 'leaf', qty: 10, today: day(1) });
-    s = run(s, { type: 'silkBuy', item: 'egg', today: day(1) });
+    s = run(s, ...eggs('egg', 1, day(1)));
     const uid = worm(s).uid;
     for (let d = 2; d <= 8; d++) {
       s = run(s, { type: 'silkSync', today: day(d) });
@@ -215,7 +239,7 @@ describe('養蠶：加速券', () => {
   });
 
   it('卵用加速券立刻孵化並登記圖鑑', () => {
-    let s = run(createInitialState(1), { type: 'silkBuy', item: 'speedup', today: D1 }, { type: 'silkBuy', item: 'egg', today: D1 });
+    let s = run(createInitialState(1), { type: 'silkBuy', item: 'speedup', today: D1 }, ...eggs('egg', 1, D1));
     s = run(s, { type: 'silkSpeedup', uid: worm(s).uid, today: D1 });
     expect(worm(s).stage).toBe(1);
     expect(s.silk.dex[worm(s).breed]?.hatched).toBe(true);
@@ -244,7 +268,7 @@ describe('養蠶：加速券', () => {
 describe('養蠶：照顧', () => {
   it('幼蟲期每天餵食又摸摸，結出極品繭', () => {
     let s = run(createInitialState(1), { type: 'silkBuy', item: 'leaf', qty: 10, today: day(1) });
-    s = run(s, { type: 'silkBuy', item: 'egg', today: day(1) });
+    s = run(s, ...eggs('egg', 1, day(1)));
     const uid = worm(s).uid;
     for (let d = 2; worm(s).stage < SILK_STAGE_COCOON; d++) {
       s = run(s, { type: 'silkSync', today: day(d) });

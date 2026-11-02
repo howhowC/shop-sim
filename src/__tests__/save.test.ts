@@ -123,6 +123,26 @@ describe('存檔', () => {
     expect(loaded.roulette).toEqual({ date: null, spinsToday: 0, lastPrizeId: null, totalSpins: 0 });
   });
 
+  it('v7 存檔轉換成 v8 後有養蠶購物車和擴充欄位，養蠶進度保留', () => {
+    const { silkCart: _c, ...rest } = createInitialState(1);
+    const { expansions: _e, ...silk } = rest.silk;
+    const v7State = { ...rest, silk: { ...silk, leaves: 4 } };
+    const loaded = deserialize(JSON.stringify({ version: 7, savedAt: 0, state: v7State }))!;
+    expect(loaded.silkCart).toEqual({});
+    expect(loaded.silk.expansions).toBe(0);
+    expect(loaded.silk.leaves).toBe(4);
+  });
+
+  it('v8 存檔轉換成 v9 後有空的蠶卵庫存，飼養盒裡的蠶保留', () => {
+    const base = createInitialState(1);
+    const { eggStock: _e, ...silk } = base.silk;
+    const worm = { uid: 1, breed: 'jade', stage: 2, stageSince: '2026-11-01', fedOn: null, pettedOn: null, affection: 30 };
+    const v8State = { ...base, silk: { ...silk, worms: [worm] } };
+    const loaded = deserialize(JSON.stringify({ version: 8, savedAt: 0, state: v8State }))!;
+    expect(loaded.silk.eggStock).toEqual({ egg: 0, premiumEgg: 0 });
+    expect(loaded.silk.worms).toEqual([worm]);
+  });
+
   it('存檔裡沒有新商品的價格時，讀檔會補上', () => {
     const s = createInitialState(1);
     const { silkworm: _p, ...prices } = s.prices;

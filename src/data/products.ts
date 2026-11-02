@@ -22,9 +22,10 @@ export const PRODUCTS: readonly Product[] = [
   { id: 'star-puzzle', name: '星空拼圖 1000 片', category: '收藏', icon: '🧩', basePrice: 410 },
   { id: 'robot-kit', name: '發條機器人 復刻版', category: '收藏', icon: '🤖', basePrice: 580, limited: true },
   { id: 'vinyl', name: '黑膠唱片 城市夜曲', category: '收藏', icon: '💿', basePrice: 710 },
-  { id: 'silkworm', name: '蠶寶寶 10 隻', category: '寵物', icon: '🐛', basePrice: 90 },
-  { id: 'mulberry-leaf', name: '新鮮桑葉 200g', category: '寵物', icon: '🍃', basePrice: 70 },
-  { id: 'silkworm-habitat', name: '蠶寶寶 飼養盒 透氣款', category: '寵物', icon: '🧺', basePrice: 120 },
+  // 養蠶用品：和養蠶小店是同一批東西（價格要等於 SILK_PRICES × qty，測試會檢查），結帳立即送進養蠶系統
+  { id: 'silkworm', name: '蠶卵（隨機品種）', category: '寵物', icon: '🥚', basePrice: 60, fixedPrice: true, silk: { item: 'egg', qty: 1 } },
+  { id: 'mulberry-leaf', name: '新鮮桑葉 1 份', category: '寵物', icon: '🍃', basePrice: 10, fixedPrice: true, silk: { item: 'leaf', qty: 1 } },
+  { id: 'silkworm-habitat', name: '蠶寶寶 飼養盒擴充（+10 格）', category: '寵物', icon: '🧺', basePrice: 120, fixedPrice: true, silk: { item: 'habitat', qty: 1 } },
   { id: 'golden-hamster', name: '熊鼠(黃金鼠)', category: '寵物', icon: '🐹', basePrice: 210 },
   { id: 'sunflower-seeds', name: '黃金鼠專用 葵花籽 300g', category: '寵物', icon: '🌻', basePrice: 50 },
   { id: 'hamster-wheel', name: '靜音滾輪 21cm', category: '寵物', icon: '🎡', basePrice: 230 },

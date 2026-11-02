@@ -71,7 +71,7 @@ export function spinRoulette(state: GameState, today: string): SilkResult {
     },
   };
 
-  const given = giveRewards(paid, prize, `R${totalSpins}`, today);
+  const given = giveRewards(paid, prize, `R${totalSpins}`);
   const toMail = given.events.length > 0;
   const next = toMail ? sendMail(paid, prize.id).state : given.state;
   return { state: next, events: [{ type: 'rouletteWon', prizeId: prize.id, toMail }] };
