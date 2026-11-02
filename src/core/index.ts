@@ -14,6 +14,7 @@ export { cocoonQuality, silkSellPrice } from './income/silk';
 export {
   SILK_CAPACITY,
   SILK_MAX_AFFECTION,
+  SILK_NAME_MAX_LENGTH,
   SILK_PRICES,
   MAIL_KEEP_CLAIMED,
   SILK_STAGE_COCOON,

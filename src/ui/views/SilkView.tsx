@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   SILK_CAPACITY,
   SILK_MAX_AFFECTION,
+  SILK_NAME_MAX_LENGTH,
   SILK_PRICES,
   SILK_STAGE_COCOON,
   SILK_STAGE_EGG,
@@ -180,7 +181,8 @@ function WormCard({ worm: w, today, tomorrow, leaves, speedups, act }: CardProps
   const larva = isLarva(w);
   const price = silkSellPrice(w);
   const filled = Math.ceil((w.affection / SILK_MAX_AFFECTION) * HEARTS);
-  const name = isEgg ? '神秘蠶卵' : breed.name;
+  const kindName = isEgg ? '神秘蠶卵' : breed.name;
+  const name = w.name ?? kindName;
 
   let hint: string;
   if (isEgg) hint = '明天就會孵化';
@@ -195,8 +197,9 @@ function WormCard({ worm: w, today, tomorrow, leaves, speedups, act }: CardProps
         <SilkwormSvg breed={breed} stage={w.stage} label={`${name}・${stageText(w.stage)}`} />
         {isEgg && <span className="silk-mystery">?</span>}
       </div>
+      <NameEditor worm={w} displayName={name} today={today} act={act} />
       <div className="silk-name">
-        <strong>{name}</strong>
+        {w.name !== undefined && <span className="small muted">{kindName}</span>}
         {!isEgg && <span className={`silk-rarity ${breed.rarity}`}>{RARITY_TEXT[breed.rarity]}</span>}
       </div>
       <span className="small muted">{stageText(w.stage)}</span>
@@ -234,5 +237,52 @@ function WormCard({ worm: w, today, tomorrow, leaves, speedups, act }: CardProps
         )}
       </div>
     </div>
+  );
+}
+
+/** 顯示名字，點 ✏️ 後變成輸入框；Enter 儲存、Esc 取消，清空後儲存代表改回品種名稱 */
+function NameEditor({ worm, displayName, today, act }: { worm: Silkworm; displayName: string; today: string; act: (a: Action) => void }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  if (draft === null) {
+    return (
+      <div className="silk-name">
+        <strong>{displayName}</strong>
+        <button className="silk-rename" onClick={() => setDraft(worm.name ?? '')} aria-label={`幫${displayName}取名`} title="取名">
+          ✏️
+        </button>
+      </div>
+    );
+  }
+  const length = [...draft.trim()].length;
+  const tooLong = length > SILK_NAME_MAX_LENGTH;
+  return (
+    <form
+      className="silk-name-form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (tooLong) return;
+        act({ type: 'silkRename', uid: worm.uid, name: draft, today });
+        setDraft(null);
+      }}
+    >
+      <input
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => e.key === 'Escape' && setDraft(null)}
+        placeholder="幫牠取個名字"
+        aria-label="名字"
+        aria-invalid={tooLong}
+        autoFocus
+      />
+      <span className={`small ${tooLong ? 'bad' : 'muted'}`}>
+        {length}/{SILK_NAME_MAX_LENGTH}
+      </span>
+      <button className="btn small" type="submit" disabled={tooLong}>
+        儲存
+      </button>
+      <button className="btn ghost small" type="button" onClick={() => setDraft(null)}>
+        取消
+      </button>
+    </form>
   );
 }

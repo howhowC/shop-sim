@@ -10,7 +10,17 @@ import { currentPrice, maybeDropCoupon, rollFlashSale, rollPrices } from './mark
 import { activeQty, formatOrderId, getOrderStatus, isOrderCancelled, refundForOne, returnDaysLeft, shippedQty } from './orders';
 import { createRng } from './rng';
 import { createRouletteState, spinRoulette } from './roulette';
-import { buySilk, createSilkState, feedSilkworm, petSilkworm, releaseMoth, speedupSilkworm, syncSilk, type SilkResult } from './silk';
+import {
+  buySilk,
+  createSilkState,
+  feedSilkworm,
+  petSilkworm,
+  releaseMoth,
+  renameSilkworm,
+  speedupSilkworm,
+  syncSilk,
+  type SilkResult,
+} from './silk';
 import type { Coupon, GameEvent, GameState, Money, Order, OrderLine, RejectReason } from './types';
 
 export function createInitialState(seed: number): GameState {
@@ -249,6 +259,8 @@ function applyAction(state: GameState, action: Action): GameState {
       return silkAction(state, action.today, (s) => sellSilkworm(s, action.uid));
     case 'silkRelease':
       return silkAction(state, action.today, (s) => releaseMoth(s, action.uid));
+    case 'silkRename':
+      return silkAction(state, action.today, (s) => renameSilkworm(s, action.uid, action.name));
     case 'silkSpeedup':
       return silkAction(state, action.today, (s) => speedupSilkworm(s, action.uid, action.today));
     case 'mailSync':

@@ -36,6 +36,7 @@ const REJECT_TEXT: Record<RejectReason, string> = {
   silk_cannot_release: '還沒羽化，不能放飛',
   silk_no_speedups: '沒有加速券了，去養蠶小店買吧',
   silk_cannot_speedup: '已經是蛾了，不能再長大囉',
+  silk_name_too_long: '名字太長了，最多 10 個字',
   unknown_mail: '找不到這封信',
   mail_already_claimed: '這封信已經領過了',
   no_mail_to_claim: '沒有可以領取的信',
@@ -71,7 +72,19 @@ export function rewardText(r: MailReward): string {
 }
 
 const breedName = (id: string) => getSilkBreed(id)?.name ?? id;
-const count = (uids: readonly number[]) => (uids.length > 1 ? ` ${uids.length} 隻` : '');
+/**
+ * 一群蠶的稱呼：有名字的列名字，沒名字的用數量帶過。
+ * 例：[null] → 蠶寶寶；[null, null] → 2 隻蠶寶寶；['小白'] → 小白；['小白', null, null] → 小白和 2 隻蠶寶寶
+ */
+export function silkwormsLabel(names: readonly (string | null)[], fallback = '蠶寶寶'): string {
+  const named = names.filter((n): n is string => n !== null);
+  const unnamed = names.length - named.length;
+  const others = unnamed === 0 ? '' : unnamed === 1 ? fallback : `${unnamed} 隻${fallback}`;
+  if (named.length === 0) return others;
+  if (others === '') return named.join('、');
+  // 數字前後留空格，和其他「2 隻」的寫法一致
+  return `${named.join('、')}和${unnamed > 1 ? ' ' : ''}${others}`;
+}
 
 const productName = (id: string) => getProduct(id)?.name ?? id;
 
@@ -95,19 +108,23 @@ export function eventText(ev: GameEvent): string {
     case 'silkBought':
       return `買了 ${SILK_ITEM_NAME[ev.item]} ×${ev.qty}，付款 ${fmt(ev.total)}`;
     case 'silkHatched':
-      return `孵化了！是${breedName(ev.breed)}`;
+      return ev.name === null ? `孵化了！是${breedName(ev.breed)}` : `${ev.name}孵化了！是${breedName(ev.breed)}`;
     case 'silkGrew':
-      return `蠶寶寶${count(ev.uids)}長大了一齡`;
+      return `${silkwormsLabel(ev.names)}長大了一齡`;
     case 'silkCocooned':
-      return `蠶寶寶${count(ev.uids)}吐絲結繭了`;
+      return `${silkwormsLabel(ev.names)}吐絲結繭了`;
     case 'silkEmerged':
-      return `破繭而出！${count(ev.uids)}羽化成蛾，已登記圖鑑`;
+      return `破繭而出！${silkwormsLabel(ev.names)}羽化成蛾，已登記圖鑑`;
     case 'silkFed':
-      return '沙沙沙…吃得好開心';
+      return `沙沙沙…${ev.name ?? ''}吃得好開心`;
     case 'silkPetted':
-      return '蠶寶寶扭了扭，好像很喜歡';
+      return `${ev.name ?? '蠶寶寶'}扭了扭，好像很喜歡`;
+    case 'silkSold':
+      return `${ev.name === null ? '' : `和${ev.name}說再見，`}賣給蠶農收購站，入帳 ${fmt(ev.amount)}`;
+    case 'silkRenamed':
+      return ev.name === null ? '已清除名字' : `取好名字了：${ev.name}`;
     case 'silkReleased':
-      return '蛾寶寶飛走了，掰掰～';
+      return `${ev.name ?? '蛾寶寶'}飛走了，掰掰～`;
     case 'mailReceived':
       return `📮 收到 ${ev.count} 封新郵件`;
     case 'rouletteWon':

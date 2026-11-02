@@ -23,6 +23,8 @@ export type Action =
   | { type: 'silkRelease'; uid: number; today: string }
   /** 用一張加速券讓一隻蠶立刻升一階 */
   | { type: 'silkSpeedup'; uid: number; today: string }
+  /** 取名或改名；空字串代表清除名字 */
+  | { type: 'silkRename'; uid: number; name: string; today: string }
   // ── 郵件：today 是當地現實日期（公告信依它寄出、信裡的蠶卵用它當放進飼養盒的日期）──
   | { type: 'mailSync'; today: string }
   | { type: 'claimMail'; mailId: string; today: string }

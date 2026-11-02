@@ -1,6 +1,6 @@
 import { round10 } from '../catalog';
 import { SILK_COCOON_QUALITY, SILK_LARVA_SELL_RATE_PER_STAGE, SILK_STAGE_COCOON } from '../config';
-import { findSilkworm, getSilkBreed, isLarva, rejected, removeWorm, type SilkResult } from '../silk';
+import { findSilkworm, getSilkBreed, isLarva, nameOf, rejected, removeWorm, type SilkResult } from '../silk';
 import type { GameState, Money, Silkworm } from '../types';
 import { earn } from './earn';
 
@@ -25,6 +25,7 @@ export function sellSilkworm(state: GameState, uid: number): SilkResult {
   if (!w) return rejected(state, 'silk_unknown');
   const price = silkSellPrice(w);
   if (price === null) return rejected(state, 'silk_cannot_sell');
+  // 錢照規則透過 earn() 入帳；通知改用 silkSold，才能帶上名字
   const paid = earn(removeWorm(state, uid), 'silk', price);
-  return { state: paid.state, events: [paid.event] };
+  return { state: paid.state, events: [{ type: 'silkSold', uid, name: nameOf(w), amount: price }] };
 }

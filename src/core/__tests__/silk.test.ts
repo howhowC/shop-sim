@@ -5,6 +5,7 @@ import {
   SILK_EGG_WEIGHTS,
   SILK_FEED_AFFECTION,
   SILK_MAX_AFFECTION,
+  SILK_NAME_MAX_LENGTH,
   SILK_PET_AFFECTION,
   SILK_PRICES,
   SILK_STAGE_COCOON,
@@ -115,7 +116,7 @@ describe('養蠶：成長', () => {
     expect(worm(s).stage).toBe(1);
     expect(worm(s).stageSince).toBe(D2);
     expect(s.silk.dex[worm(s).breed]).toEqual({ hatched: true, moth: false });
-    expect(s.events).toContainEqual({ type: 'silkHatched', uid: worm(s).uid, breed: worm(s).breed });
+    expect(s.events).toContainEqual({ type: 'silkHatched', uid: worm(s).uid, breed: worm(s).breed, name: null });
   });
 
   it('幼蟲沒餵，隔天不會長大（也不會死）', () => {
@@ -129,7 +130,7 @@ describe('養蠶：成長', () => {
     expect(worm(s).stage).toBe(1);
     s = run(s, { type: 'silkSync', today: D2 });
     expect(worm(s).stage).toBe(2);
-    expect(s.events).toContainEqual({ type: 'silkGrew', uids: [999] });
+    expect(s.events).toContainEqual({ type: 'silkGrew', uids: [999], names: [null] });
   });
 
   it('隔了很多天才回來，一次也只長一齡', () => {
@@ -161,6 +162,50 @@ describe('養蠶：成長', () => {
   });
 });
 
+describe('養蠶：取名', () => {
+  it('取名會去掉前後空白，任何階段都可以取', () => {
+    for (const stage of [0, 3, SILK_STAGE_COCOON, SILK_STAGE_MOTH]) {
+      const s = run(withWorm(createInitialState(1), { stage }), { type: 'silkRename', uid: 999, name: '  小白  ', today: D1 });
+      expect(worm(s).name).toBe('小白');
+      expect(s.events).toEqual([{ type: 'silkRenamed', uid: 999, name: '小白' }]);
+    }
+  });
+
+  it('空白名字代表清除名字', () => {
+    const s = run(withWorm(createInitialState(1), { name: '小白' }), { type: 'silkRename', uid: 999, name: '   ', today: D1 });
+    expect(worm(s)).not.toHaveProperty('name');
+    expect(s.events).toEqual([{ type: 'silkRenamed', uid: 999, name: null }]);
+  });
+
+  it('名字太長會被拒絕；emoji 算一個字', () => {
+    const tooLong = 'あ'.repeat(SILK_NAME_MAX_LENGTH + 1);
+    let s = run(withWorm(createInitialState(1), {}), { type: 'silkRename', uid: 999, name: tooLong, today: D1 });
+    expect(s.events).toEqual([{ type: 'rejected', reason: 'silk_name_too_long' }]);
+    expect(worm(s)).not.toHaveProperty('name');
+
+    const emojis = '🐛'.repeat(SILK_NAME_MAX_LENGTH);
+    s = run(withWorm(createInitialState(1), {}), { type: 'silkRename', uid: 999, name: emojis, today: D1 });
+    expect(worm(s).name).toBe(emojis);
+  });
+
+  it('通知事件帶著名字：餵食、長大、賣掉、放飛', () => {
+    let s = run(withWorm(createInitialState(1), { name: '小白' }), { type: 'silkFeed', uid: 999, today: D1 });
+    expect(s.events).toEqual([{ type: 'silkFed', uid: 999, name: '小白' }]);
+    s = run(s, { type: 'silkSync', today: D2 });
+    expect(s.events).toEqual([{ type: 'silkGrew', uids: [999], names: ['小白'] }]);
+    s = run(s, { type: 'silkSell', uid: 999, today: D2 });
+    expect(s.events[0]).toMatchObject({ type: 'silkSold', uid: 999, name: '小白' });
+    s = run(withWorm(createInitialState(1), { stage: SILK_STAGE_MOTH, name: '小白' }), { type: 'silkRelease', uid: 999, today: D1 });
+    expect(s.events).toEqual([{ type: 'silkReleased', uid: 999, name: '小白' }]);
+  });
+
+  it('長大後名字還在', () => {
+    let s = run(withWorm(createInitialState(1), {}), { type: 'silkRename', uid: 999, name: '小白', today: D1 }, { type: 'silkFeed', uid: 999, today: D1 });
+    s = run(s, { type: 'silkSync', today: D2 });
+    expect(worm(s)).toMatchObject({ stage: 2, name: '小白' });
+  });
+});
+
 describe('養蠶：加速券', () => {
   it('可以在小店買加速券', () => {
     const s0 = createInitialState(1);
@@ -175,7 +220,7 @@ describe('養蠶：加速券', () => {
     expect(worm(s).stage).toBe(1);
     expect(s.silk.dex[worm(s).breed]?.hatched).toBe(true);
     expect(s.silk.speedups).toBe(0);
-    expect(s.events).toContainEqual({ type: 'silkHatched', uid: worm(s).uid, breed: worm(s).breed });
+    expect(s.events).toContainEqual({ type: 'silkHatched', uid: worm(s).uid, breed: worm(s).breed, name: null });
   });
 
   it('不用餵食、同一天可以連續使用，一路用到羽化', () => {
@@ -242,13 +287,13 @@ describe('養蠶：照顧', () => {
 });
 
 describe('養蠶：出售與放飛', () => {
-  it('賣繭的金額依親密度品質，透過 income 事件入帳', () => {
+  it('賣繭的金額依親密度品質，錢入帳並產生 silkSold 事件', () => {
     const best = SILK_COCOON_QUALITY[0];
     const s0 = withWorm(createInitialState(1), { stage: SILK_STAGE_COCOON, affection: best.minAffection });
     const price = Math.round((getSilkBreed('jade')!.cocoonPrice * best.rate) / 10) * 10;
     const s = run(s0, { type: 'silkSell', uid: 999, today: D1 });
     expect(s.money).toBe(s0.money + price);
-    expect(s.events).toEqual([{ type: 'income', source: 'silk', amount: price }]);
+    expect(s.events).toEqual([{ type: 'silkSold', uid: 999, name: null, amount: price }]);
     expect(s.silk.worms).toHaveLength(0);
   });
 

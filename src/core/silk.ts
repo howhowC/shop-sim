@@ -6,6 +6,7 @@ import {
   SILK_EGG_WEIGHTS,
   SILK_FEED_AFFECTION,
   SILK_MAX_AFFECTION,
+  SILK_NAME_MAX_LENGTH,
   SILK_PET_AFFECTION,
   SILK_PRICES,
   SILK_STAGE_COCOON,
@@ -76,14 +77,25 @@ function advanceWorm(
   return { worm, dex, kind: 'grew' };
 }
 
+/** 事件裡用的名字：沒取名是 null */
+export const nameOf = (w: Silkworm): string | null => w.name ?? null;
+
 /** 把一批成長結果轉成事件；孵化每隻各一則（要顯示品種），其他同類合併成一則 */
 function growthEvents(grown: readonly { worm: Silkworm; kind: GrowthKind }[]): GameEvent[] {
   const events: GameEvent[] = [];
-  const uids = (kind: GrowthKind) => grown.filter((g) => g.kind === kind).map((g) => g.worm.uid);
-  for (const g of grown) if (g.kind === 'hatched') events.push({ type: 'silkHatched', uid: g.worm.uid, breed: g.worm.breed });
-  if (uids('grew').length > 0) events.push({ type: 'silkGrew', uids: uids('grew') });
-  if (uids('cocooned').length > 0) events.push({ type: 'silkCocooned', uids: uids('cocooned') });
-  if (uids('emerged').length > 0) events.push({ type: 'silkEmerged', uids: uids('emerged') });
+  const pick = (kind: GrowthKind) => {
+    const ws = grown.filter((g) => g.kind === kind).map((g) => g.worm);
+    return { uids: ws.map((w) => w.uid), names: ws.map(nameOf) };
+  };
+  for (const g of grown) {
+    if (g.kind === 'hatched') events.push({ type: 'silkHatched', uid: g.worm.uid, breed: g.worm.breed, name: nameOf(g.worm) });
+  }
+  const grew = pick('grew');
+  const cocooned = pick('cocooned');
+  const emerged = pick('emerged');
+  if (grew.uids.length > 0) events.push({ type: 'silkGrew', ...grew });
+  if (cocooned.uids.length > 0) events.push({ type: 'silkCocooned', ...cocooned });
+  if (emerged.uids.length > 0) events.push({ type: 'silkEmerged', ...emerged });
   return events;
 }
 
@@ -198,7 +210,7 @@ export function feedSilkworm(state: GameState, uid: number, today: string): Silk
   if (w.fedOn === today) return rejected(state, 'silk_already_fed');
   if (state.silk.leaves <= 0) return rejected(state, 'silk_no_leaves');
   const next = updateWorm(state, { ...w, fedOn: today, affection: addAffection(w, SILK_FEED_AFFECTION) });
-  return { state: { ...next, silk: { ...next.silk, leaves: next.silk.leaves - 1 } }, events: [{ type: 'silkFed', uid }] };
+  return { state: { ...next, silk: { ...next.silk, leaves: next.silk.leaves - 1 } }, events: [{ type: 'silkFed', uid, name: nameOf(w) }] };
 }
 
 export function petSilkworm(state: GameState, uid: number, today: string): SilkResult {
@@ -208,7 +220,7 @@ export function petSilkworm(state: GameState, uid: number, today: string): SilkR
   if (w.pettedOn === today) return rejected(state, 'silk_already_petted');
   return {
     state: updateWorm(state, { ...w, pettedOn: today, affection: addAffection(w, SILK_PET_AFFECTION) }),
-    events: [{ type: 'silkPetted', uid }],
+    events: [{ type: 'silkPetted', uid, name: nameOf(w) }],
   };
 }
 
@@ -217,10 +229,24 @@ export const removeWorm = (state: GameState, uid: number): GameState => ({
   silk: { ...state.silk, worms: state.silk.worms.filter((w) => w.uid !== uid) },
 });
 
+/** 取名或改名；前後空白會去掉，空字串代表清除名字（改回顯示品種名稱）。任何階段都可以取名。 */
+export function renameSilkworm(state: GameState, uid: number, rawName: string): SilkResult {
+  const w = findSilkworm(state, uid);
+  if (!w) return rejected(state, 'silk_unknown');
+  const name = rawName.trim();
+  // 用展開運算子數字數，emoji 才會算一個字
+  if ([...name].length > SILK_NAME_MAX_LENGTH) return rejected(state, 'silk_name_too_long');
+  const { name: _old, ...rest } = w;
+  return {
+    state: updateWorm(state, name === '' ? rest : { ...rest, name }),
+    events: [{ type: 'silkRenamed', uid, name: name === '' ? null : name }],
+  };
+}
+
 /** 蛾只能放飛（圖鑑在羽化時就登記了） */
 export function releaseMoth(state: GameState, uid: number): SilkResult {
   const w = findSilkworm(state, uid);
   if (!w) return rejected(state, 'silk_unknown');
   if (w.stage !== SILK_STAGE_MOTH) return rejected(state, 'silk_cannot_release');
-  return { state: removeWorm(state, uid), events: [{ type: 'silkReleased', uid }] };
+  return { state: removeWorm(state, uid), events: [{ type: 'silkReleased', uid, name: nameOf(w) }] };
 }

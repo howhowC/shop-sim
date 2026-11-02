@@ -61,6 +61,8 @@ export const SILK_PRICES = { egg: 60, premiumEgg: 180, leaf: 10, speedup: 50 } a
 export const SILK_FEED_AFFECTION = 10;
 export const SILK_PET_AFFECTION = 5;
 export const SILK_MAX_AFFECTION = 100;
+/** 蠶寶寶名字最多幾個字（emoji 算一個字） */
+export const SILK_NAME_MAX_LENGTH = 10;
 /** 繭的品質：親密度 ≥ minAffection 就套用該倍率（由高到低檢查）。
  *  幼蟲期 5 天、每天餵食＋摸摸最多 +15，全勤照顧剛好 75 → 極品；只餵不摸 50 → 優良 */
 export const SILK_COCOON_QUALITY: readonly { quality: 'great' | 'good' | 'normal'; minAffection: number; rate: number }[] = [

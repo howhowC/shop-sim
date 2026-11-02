@@ -116,6 +116,8 @@ export interface Silkworm {
   pettedOn: string | null;
   /** 親密度 0～100，影響繭的品質 */
   affection: number;
+  /** 玩家取的名字；沒取名（或舊存檔）時顯示品種名稱 */
+  name?: string;
 }
 
 export interface SilkDexEntry {
@@ -230,6 +232,7 @@ export type RejectReason =
   | 'silk_cannot_release'
   | 'silk_no_speedups'
   | 'silk_cannot_speedup'
+  | 'silk_name_too_long'
   | 'unknown_mail'
   | 'mail_already_claimed'
   | 'no_mail_to_claim'
@@ -245,13 +248,20 @@ export type GameEvent =
   /** 退款不算收入，所以不走 earn() 的 income 事件 */
   | { type: 'refunded'; kind: 'cancel' | 'return'; orderId: string; productId: ProductId; amount: Money }
   | { type: 'silkBought'; item: SilkShopItem; qty: number; total: Money }
-  | { type: 'silkHatched'; uid: number; breed: SilkBreedId }
-  | { type: 'silkGrew'; uids: number[] }
-  | { type: 'silkCocooned'; uids: number[] }
-  | { type: 'silkEmerged'; uids: number[] }
-  | { type: 'silkFed'; uid: number }
-  | { type: 'silkPetted'; uid: number }
-  | { type: 'silkReleased'; uid: number }
+  // 養蠶事件帶上蠶的名字（沒取名是 null），通知才能寫「小白長大了」；
+  // 賣掉、放飛後蠶已經不在 state 裡，所以名字要在事件裡帶著，不能讓 UI 再去查
+  | { type: 'silkHatched'; uid: number; breed: SilkBreedId; name: string | null }
+  /** names 和 uids 一一對應 */
+  | { type: 'silkGrew'; uids: number[]; names: (string | null)[] }
+  | { type: 'silkCocooned'; uids: number[]; names: (string | null)[] }
+  | { type: 'silkEmerged'; uids: number[]; names: (string | null)[] }
+  | { type: 'silkFed'; uid: number; name: string | null }
+  | { type: 'silkPetted'; uid: number; name: string | null }
+  | { type: 'silkReleased'; uid: number; name: string | null }
+  /** 賣蠶的收入；錢一樣透過 earn() 入帳，只是用這個事件取代 income 事件，通知才能帶名字 */
+  | { type: 'silkSold'; uid: number; name: string | null; amount: Money }
+  /** name 為 null 代表清除名字 */
+  | { type: 'silkRenamed'; uid: number; name: string | null }
   | { type: 'mailReceived'; count: number }
   | { type: 'mailClaimed'; mailId: string; templateId: string }
   /** toMail：飼養盒放不下，獎品改寄到信箱 */
