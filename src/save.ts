@@ -12,7 +12,7 @@ import { fillMissingPrices } from './core';
 import type { GameState } from './core';
 
 export const SAVE_KEY = 'shop-sim:save';
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 interface SaveFile {
   version: number;
@@ -53,6 +53,12 @@ const MIGRATIONS: Record<number, Migration> = {
     inventory: Array.isArray(old.inventory)
       ? old.inventory.filter((it) => !(isRecord(it) && it.productId === 'price-diff'))
       : old.inventory,
+  }),
+  // v6：新增郵件，養蠶加上加速券
+  5: (old) => ({
+    ...old,
+    mail: { inbox: [], delivered: [], nextMailNo: 1 },
+    silk: isRecord(old.silk) ? { ...old.silk, speedups: 0 } : old.silk,
   }),
 };
 
@@ -104,7 +110,12 @@ function looksLikeGameState(s: Record<string, unknown>): s is Record<string, unk
     isRecord(s.silk) &&
     Array.isArray(s.silk.worms) &&
     typeof s.silk.leaves === 'number' &&
-    isRecord(s.silk.dex)
+    isRecord(s.silk.dex) &&
+    typeof s.silk.speedups === 'number' &&
+    isRecord(s.mail) &&
+    Array.isArray(s.mail.inbox) &&
+    Array.isArray(s.mail.delivered) &&
+    typeof s.mail.nextMailNo === 'number'
   );
 }
 

@@ -1,9 +1,9 @@
-import { useCallback, useRef, useState } from 'react';
-import { createInitialState, getOrderStatus, isOrderCancelled, reducer } from '../core';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createInitialState, getOrderStatus, isOrderCancelled, reducer, unclaimedCount } from '../core';
 import type { Action, GameState } from '../core';
 import { clearSave, loadGame, saveGame } from '../save';
 import { ConfirmDialog } from './ConfirmDialog';
-import { eventText } from './format';
+import { eventText, localDateString } from './format';
 import { Header } from './Header';
 import { Tabs, type Tab } from './Tabs';
 import { Toast } from './Toast';
@@ -15,6 +15,7 @@ import { RoomView } from './views/RoomView';
 import { ShopView } from './views/ShopView';
 import { CheckInView } from './views/CheckInView';
 import { SilkView } from './views/SilkView';
+import { MailView } from './views/MailView';
 
 export default function App() {
   // 有存檔就接著玩，沒有就開新遊戲
@@ -45,9 +46,16 @@ export default function App() {
     if (next.events.some((e) => e.type === 'orderPlaced')) setTab('orders');
   };
 
+  // 打開遊戲時寄出開放日期已到的公告信（只在第一次掛載時做；act 刻意不放進依賴）
+  useEffect(() => {
+    act({ type: 'mailSync', today: localDateString(new Date()) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
+  }, []);
+
   const restart = () => {
     clearSave();
-    const fresh = newGame();
+    // 新遊戲也要收到已開放的公告信
+    const fresh = reducer(newGame(), { type: 'mailSync', today: localDateString(new Date()) });
     setState(fresh);
     saveGame(fresh);
     setTab('shop');
@@ -65,15 +73,17 @@ export default function App() {
       <Header
         state={state}
         cartCount={cartCount}
+        mailCount={unclaimedCount(state)}
         query={query}
         onQuery={(q) => {
           setQuery(q);
           setTab('shop');
         }}
         onCart={() => setTab('cart')}
+        onMail={() => setTab('mail')}
         onNextDay={() => act({ type: 'nextDay' })}
       >
-        <Tabs current={tab} onChange={setTab} ordersDot={waitingToOpen} />
+        <Tabs current={tab} onChange={setTab} ordersDot={waitingToOpen} mailDot={unclaimedCount(state) > 0} />
       </Header>
 
       <main className="wrap main">
@@ -95,6 +105,7 @@ export default function App() {
         {tab === 'resale' && <ResaleView state={state} act={act} />}
         {tab === 'checkin' && <CheckInView state={state} act={act} onSilk={() => setTab('silk')} />}
         {tab === 'silk' && <SilkView state={state} act={act} />}
+        {tab === 'mail' && <MailView state={state} act={act} />}
       </main>
 
       <footer className="wrap foot">

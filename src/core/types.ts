@@ -76,7 +76,7 @@ export interface CheckInState {
 }
 
 /** 收入來源。新增小遊戲時在這裡加上名稱。 */
-export type IncomeSource = 'checkIn' | 'resale' | 'silk';
+export type IncomeSource = 'checkIn' | 'resale' | 'silk' | 'mail';
 
 // ── 養蠶小遊戲 ──
 export type SilkBreedId = string;
@@ -100,7 +100,8 @@ export interface SilkBreed {
 }
 
 export type SilkEggKind = 'egg' | 'premiumEgg';
-export type SilkShopItem = SilkEggKind | 'leaf';
+/** speedup：加速券，讓一隻蠶立刻升一階 */
+export type SilkShopItem = SilkEggKind | 'leaf' | 'speedup';
 
 export interface Silkworm {
   uid: number;
@@ -126,8 +127,59 @@ export interface SilkState {
   worms: Silkworm[];
   /** 桑葉剩幾份；一份餵一次 */
   leaves: number;
+  /** 加速券張數 */
+  speedups: number;
   /** 圖鑑；沒出現過的品種不會有 key */
   dex: Record<SilkBreedId, SilkDexEntry>;
+}
+
+// ── 郵件 ──
+export type MailReward =
+  | { kind: 'money'; amount: Money }
+  /** validDays：含領取當天在內可以使用的天數 */
+  | { kind: 'coupon'; minSpend: Money; discount: Money; validDays: number }
+  | { kind: 'silk'; item: SilkShopItem; qty: number }
+  | { kind: 'product'; productId: ProductId; qty: number };
+
+/** 信件內容（寫在 data/mail.ts）；存檔只存 templateId */
+export interface MailTemplate {
+  id: string;
+  from: string;
+  title: string;
+  body: string;
+  rewards: MailReward[];
+}
+
+/** 開發者公告／禮物信：現實日期到了就寄給所有玩家，每封只寄一次 */
+export interface AnnouncementTemplate extends MailTemplate {
+  /** 開放日期（當地現實日期 'YYYY-MM-DD'） */
+  availableFrom: string;
+}
+
+/** 里程碑條件：數量達到 count 就寄信，每封只寄一次 */
+export type MilestoneCondition =
+  | { kind: 'orders'; count: number }
+  | { kind: 'unboxed'; count: number }
+  | { kind: 'moths'; count: number }
+  | { kind: 'dexHatched'; count: number }
+  | { kind: 'checkInStreak'; count: number };
+
+export interface MilestoneTemplate extends MailTemplate {
+  condition: MilestoneCondition;
+}
+
+export interface Mail {
+  id: string;
+  templateId: string;
+  receivedDay: number;
+  claimed: boolean;
+}
+
+export interface MailState {
+  inbox: Mail[];
+  /** 已經寄過的公告和里程碑 templateId，避免重複寄 */
+  delivered: string[];
+  nextMailNo: number;
 }
 
 export type RejectReason =
@@ -154,7 +206,12 @@ export type RejectReason =
   | 'silk_cannot_feed'
   | 'silk_cannot_pet'
   | 'silk_cannot_sell'
-  | 'silk_cannot_release';
+  | 'silk_cannot_release'
+  | 'silk_no_speedups'
+  | 'silk_cannot_speedup'
+  | 'unknown_mail'
+  | 'mail_already_claimed'
+  | 'no_mail_to_claim';
 
 export type GameEvent =
   | { type: 'orderPlaced'; orderId: string; total: Money }
@@ -172,7 +229,9 @@ export type GameEvent =
   | { type: 'silkEmerged'; uids: number[] }
   | { type: 'silkFed'; uid: number }
   | { type: 'silkPetted'; uid: number }
-  | { type: 'silkReleased'; uid: number };
+  | { type: 'silkReleased'; uid: number }
+  | { type: 'mailReceived'; count: number }
+  | { type: 'mailClaimed'; mailId: string; templateId: string };
 
 export interface GameState {
   day: number;
@@ -190,6 +249,7 @@ export interface GameState {
   inventory: OwnedItem[];
   checkIn: CheckInState;
   silk: SilkState;
+  mail: MailState;
   nextOrderNo: number;
   nextUid: number;
   /** 最近一次 action 產生的事件，給 UI 顯示通知用 */

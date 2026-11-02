@@ -161,6 +161,41 @@ describe('養蠶：成長', () => {
   });
 });
 
+describe('養蠶：加速券', () => {
+  it('可以在小店買加速券', () => {
+    const s0 = createInitialState(1);
+    const s = run(s0, { type: 'silkBuy', item: 'speedup', qty: 2, today: D1 });
+    expect(s.silk.speedups).toBe(2);
+    expect(s.money).toBe(s0.money - SILK_PRICES.speedup * 2);
+  });
+
+  it('卵用加速券立刻孵化並登記圖鑑', () => {
+    let s = run(createInitialState(1), { type: 'silkBuy', item: 'speedup', today: D1 }, { type: 'silkBuy', item: 'egg', today: D1 });
+    s = run(s, { type: 'silkSpeedup', uid: worm(s).uid, today: D1 });
+    expect(worm(s).stage).toBe(1);
+    expect(s.silk.dex[worm(s).breed]?.hatched).toBe(true);
+    expect(s.silk.speedups).toBe(0);
+    expect(s.events).toContainEqual({ type: 'silkHatched', uid: worm(s).uid, breed: worm(s).breed });
+  });
+
+  it('不用餵食、同一天可以連續使用，一路用到羽化', () => {
+    let s = withWorm(createInitialState(1), { stage: 1 });
+    s = { ...s, silk: { ...s.silk, speedups: 10 } };
+    s = run(s, ...Array.from({ length: SILK_STAGE_MOTH - 1 }, () => ({ type: 'silkSpeedup', uid: 999, today: D1 }) as const));
+    expect(worm(s).stage).toBe(SILK_STAGE_MOTH);
+    expect(s.silk.dex.jade).toEqual({ hatched: false, moth: true });
+    expect(s.silk.speedups).toBe(10 - (SILK_STAGE_MOTH - 1));
+  });
+
+  it('蛾不能加速；沒有加速券會被拒絕', () => {
+    let s = withWorm(createInitialState(1), { stage: SILK_STAGE_MOTH });
+    s = run({ ...s, silk: { ...s.silk, speedups: 1 } }, { type: 'silkSpeedup', uid: 999, today: D1 });
+    expect(s.events).toEqual([{ type: 'rejected', reason: 'silk_cannot_speedup' }]);
+    s = run(withWorm(createInitialState(1), {}), { type: 'silkSpeedup', uid: 999, today: D1 });
+    expect(s.events).toEqual([{ type: 'rejected', reason: 'silk_no_speedups' }]);
+  });
+});
+
 describe('養蠶：照顧', () => {
   it('幼蟲期每天餵食又摸摸，結出極品繭', () => {
     let s = run(createInitialState(1), { type: 'silkBuy', item: 'leaf', qty: 10, today: day(1) });

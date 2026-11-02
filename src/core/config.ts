@@ -56,7 +56,7 @@ export const SILK_STAGE_MOTH = 7;
 /** 飼養盒最多同時養幾隻（含卵、繭、蛾） */
 export const SILK_CAPACITY = 60;
 /** 小店價格（元） */
-export const SILK_PRICES = { egg: 60, premiumEgg: 180, leaf: 10 } as const;
+export const SILK_PRICES = { egg: 60, premiumEgg: 180, leaf: 10, speedup: 50 } as const;
 /** 親密度：餵食、摸摸各加多少；上限 */
 export const SILK_FEED_AFFECTION = 10;
 export const SILK_PET_AFFECTION = 5;
@@ -76,3 +76,9 @@ export const SILK_EGG_WEIGHTS = {
   egg: { common: 75, uncommon: 15, rare: 8, legendary: 2 },
   premiumEgg: { common: 35, uncommon: 25, rare: 25, legendary: 15 },
 } as const;
+
+// ── 郵件 ──
+/** 每過一天收到隨機來信的機率 */
+export const MAIL_RANDOM_CHANCE = 0.15;
+/** 信箱最多保留幾封「已領取」的信，超過時刪掉最舊的（沒領的信不會被刪） */
+export const MAIL_KEEP_CLAIMED = 30;

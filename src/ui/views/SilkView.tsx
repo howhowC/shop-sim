@@ -23,6 +23,7 @@ const SHOP: readonly { item: SilkShopItem; icon: string; note: string }[] = [
   { item: 'egg', icon: '🥚', note: '孵化後才知道是什麼品種' },
   { item: 'premiumEgg', icon: '✨', note: '比較容易孵出稀有品種' },
   { item: 'leaf', icon: '🍃', note: '一份餵一隻一次' },
+  { item: 'speedup', icon: '⏩', note: '讓一隻蠶立刻長大一個階段' },
 ];
 const HEARTS = 5;
 
@@ -53,7 +54,7 @@ export function SilkView({ state, act }: { state: GameState; act: (a: Action) =>
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when the date changes
   }, [today]);
 
-  const { worms, leaves, dex } = state.silk;
+  const { worms, leaves, speedups, dex } = state.silk;
   const breeds = allSilkBreeds();
   const collected = breeds.filter((b) => dex[b.id]?.hatched).length;
 
@@ -76,11 +77,13 @@ export function SilkView({ state, act }: { state: GameState; act: (a: Action) =>
             <strong className="big">
               飼養盒 {worms.length}/{SILK_CAPACITY}
             </strong>
-            <span className="silk-leaves">🍃 桑葉 {leaves} 份</span>
+            <span className="silk-leaves">
+              🍃 桑葉 {leaves} 份・⏩ 加速券 {speedups} 張
+            </span>
           </div>
           <div className="silk-grid">
             {worms.map((w) => (
-              <WormCard key={w.uid} worm={w} today={today} tomorrow={tomorrow} leaves={leaves} act={act} />
+              <WormCard key={w.uid} worm={w} today={today} tomorrow={tomorrow} leaves={leaves} speedups={speedups} act={act} />
             ))}
             {Array.from({ length: SILK_CAPACITY - worms.length }, (_, i) => (
               <div className="silk-card empty" key={`empty-${i}`}>
@@ -96,7 +99,7 @@ export function SilkView({ state, act }: { state: GameState; act: (a: Action) =>
             <ul className="silk-shop">
               {SHOP.map(({ item, icon, note }) => {
                 const price = SILK_PRICES[item];
-                const isEgg = item !== 'leaf';
+                const isEgg = item === 'egg' || item === 'premiumEgg';
                 return (
                   <li key={item}>
                     <span className="silk-shop-icon" aria-hidden>
@@ -166,10 +169,11 @@ interface CardProps {
   today: string;
   tomorrow: string;
   leaves: number;
+  speedups: number;
   act: (a: Action) => void;
 }
 
-function WormCard({ worm: w, today, tomorrow, leaves, act }: CardProps) {
+function WormCard({ worm: w, today, tomorrow, leaves, speedups, act }: CardProps) {
   const breed = getSilkBreed(w.breed);
   if (!breed) return null;
   const isEgg = w.stage <= SILK_STAGE_EGG;
@@ -212,6 +216,11 @@ function WormCard({ worm: w, today, tomorrow, leaves, act }: CardProps) {
               摸摸
             </button>
           </>
+        )}
+        {w.stage < SILK_STAGE_MOTH && speedups > 0 && (
+          <button className="btn ghost small" title="用一張加速券，立刻長大一個階段" onClick={() => act({ type: 'silkSpeedup', uid: w.uid, today })}>
+            ⏩ 加速
+          </button>
         )}
         {price !== null && (
           <button className="btn ghost small" onClick={() => act({ type: 'silkSell', uid: w.uid, today })}>

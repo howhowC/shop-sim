@@ -1,6 +1,6 @@
 # shop-sim — 網購模擬器
 
-讓玩家滿足網購慾望的網頁遊戲：逛商城、下單、等到貨、開箱、收藏、轉賣、每日簽到領零用錢。
+讓玩家滿足網購慾望的網頁遊戲：逛商城、下單、等到貨、開箱、收藏、轉賣、每日簽到領零用錢、收郵件領禮物。
 目前只有買家模式＋養蠶小遊戲；之後可能加入賣家模式、更多小遊戲、購物節大促、排行榜。
 
 ## 指令
@@ -28,14 +28,16 @@ src/
     market.ts           每日價格、限時特價、優惠券掉落
     orders.ts           物流狀態（由日期推算）、取消與退貨的退款計算（優惠券依比例分攤）
     inventory.ts        玩家擁有的物品
-    silk.ts             養蠶小遊戲：買卵、餵食、摸摸、依現實日期成長（syncSilk）、放飛
+    silk.ts             養蠶小遊戲：買卵、餵食、摸摸、依現實日期成長（syncSilk）、加速券、放飛
+    mail.ts             郵件：公告信、隨機來信、里程碑來信（reducer 每個成功的 action 後檢查）、領取附件
     income/             收入來源（checkin.ts 每日簽到、resale.ts 轉賣、silk.ts 賣蠶繭）；都透過 earn() 入帳
     catalog.ts          查詢商品資料
     rng.ts              seeded 亂數
     index.ts            core 對外的唯一出口
     __tests__/          單元測試
   data/products.ts      商品清單（虛構品牌）
-  data/silkBreeds.ts    蠶寶寶品種（順序對應 config.ts 的 SILK_EGG_WEIGHTS）
+  data/silkBreeds.ts    蠶寶寶品種（抽中機率由 rarity 決定）
+  data/mail.ts          郵件內容：公告信、隨機信、里程碑信
   save.ts               存檔／讀檔（唯一碰 localStorage 的地方）、存檔版本與轉換
   __tests__/            core 以外的測試（目前是 save.test.ts）
   ui/                   React 畫面
@@ -100,6 +102,13 @@ src/
 2. 在 `MIGRATIONS` 加一個「舊版 → 新版」的轉換函式（例如補上新欄位的預設值）
 3. 新欄位是必要欄位的話，更新 `looksLikeGameState()`
 4. 在 `src/__tests__/save.test.ts` 加測試，確認舊版存檔能轉換成功
+
+### 寄一封公告／禮物信給所有玩家
+1. 在 `src/data/mail.ts` 的 `ANNOUNCEMENTS` 加一筆：`id` 用新的英文 kebab-case（上線後不能改、不能重複），`availableFrom` 填開放日期 `'YYYY-MM-DD'`（玩家當地的現實日期）
+2. `rewards` 可以放 `money`、`coupon`、`silk`（桑葉／蠶卵／精選蠶卵／加速券）、`product`（實體商品）
+3. `npm test`（會檢查 id 不重複、商品存在）→ push 部署。玩家在開放日期當天或之後打開網頁就會收到，每封只寄一次。
+
+不用改存檔版本：存檔只記錄已寄過的 `id`。
 
 ### 危險操作（刪除進度、清空資料）
 一律先用 `ui/ConfirmDialog.tsx` 跟玩家確認，訊息要寫清楚會刪除什麼。不要用 `window.confirm()`。

@@ -5,10 +5,11 @@ import { sellItem } from './income/resale';
 import { checkIn } from './income/checkin';
 import { sellSilkworm } from './income/silk';
 import { addFromOrder, findItem, removeItem } from './inventory';
+import { claimAllMail, claimMail, createMailState, deliverMilestones, rollRandomMail, syncAnnouncements } from './mail';
 import { currentPrice, maybeDropCoupon, rollFlashSale, rollPrices } from './market';
 import { activeQty, formatOrderId, getOrderStatus, isOrderCancelled, refundForOne, returnDaysLeft, shippedQty } from './orders';
 import { createRng } from './rng';
-import { buySilk, createSilkState, feedSilkworm, petSilkworm, releaseMoth, syncSilk, type SilkResult } from './silk';
+import { buySilk, createSilkState, feedSilkworm, petSilkworm, releaseMoth, speedupSilkworm, syncSilk, type SilkResult } from './silk';
 import type { Coupon, GameEvent, GameState, Money, Order, OrderLine, RejectReason } from './types';
 
 export function createInitialState(seed: number): GameState {
@@ -34,6 +35,7 @@ export function createInitialState(seed: number): GameState {
     inventory: [],
     checkIn: { lastDate: null, streak: 0 },
     silk: createSilkState(),
+    mail: createMailState(),
     nextOrderNo: 1,
     nextUid: 1,
     rngState: rng.state(),
@@ -177,16 +179,17 @@ function nextDay(state: GameState): GameState {
   const arrived = state.orders.filter((o) => o.deliveryDay === day && !isOrderCancelled(o)).map((o) => o.id);
   if (arrived.length > 0) events.push({ type: 'packagesArrived', orderIds: arrived });
 
-  return {
+  const advanced: GameState = {
     ...state,
     day,
     prevPrices: state.prices,
     prices: rollPrices(day, rng),
     flashSale: rollFlashSale(day, rng),
     coupons,
-    rngState: rng.state(),
-    events,
   };
+  // 隨機來信放在最後抽，前面價格、特價的亂數順序才不會因為加了郵件而改變
+  const mail = rollRandomMail(advanced, rng);
+  return { ...mail.state, rngState: rng.state(), events: [...events, ...mail.events] };
 }
 
 /**
@@ -200,7 +203,15 @@ function silkAction(state: GameState, today: string, op: (s: GameState) => SilkR
   return { ...r.state, events: [...synced.events, ...r.events] };
 }
 
+/** 處理 action；成功的 action 之後再檢查有沒有達成里程碑要寄信 */
 export function reducer(state: GameState, action: Action): GameState {
+  const next = applyAction(state, action);
+  return next.events.some((e) => e.type === 'rejected') ? next : deliverMilestones(next);
+}
+
+const withEvents = (r: SilkResult): GameState => ({ ...r.state, events: r.events });
+
+function applyAction(state: GameState, action: Action): GameState {
   switch (action.type) {
     case 'addToCart':
       return setQty(state, action.productId, (state.cart[action.productId] ?? 0) + (action.qty ?? 1));
@@ -236,5 +247,13 @@ export function reducer(state: GameState, action: Action): GameState {
       return silkAction(state, action.today, (s) => sellSilkworm(s, action.uid));
     case 'silkRelease':
       return silkAction(state, action.today, (s) => releaseMoth(s, action.uid));
+    case 'silkSpeedup':
+      return silkAction(state, action.today, (s) => speedupSilkworm(s, action.uid, action.today));
+    case 'mailSync':
+      return withEvents(syncAnnouncements(state, action.today));
+    case 'claimMail':
+      return withEvents(claimMail(state, action.mailId, action.today));
+    case 'claimAllMail':
+      return withEvents(claimAllMail(state, action.today));
   }
 }

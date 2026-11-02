@@ -1,5 +1,5 @@
-import { getProduct, getSilkBreed } from '../core';
-import type { GameEvent, IncomeSource, RejectReason, SilkShopItem } from '../core';
+import { getMailTemplate, getProduct, getSilkBreed } from '../core';
+import type { GameEvent, IncomeSource, MailReward, RejectReason, SilkShopItem } from '../core';
 
 export const fmt = (n: number): string => '$' + n.toLocaleString('zh-TW');
 
@@ -34,19 +34,40 @@ const REJECT_TEXT: Record<RejectReason, string> = {
   silk_cannot_pet: '現在摸不到牠喔',
   silk_cannot_sell: '這個階段不能出售',
   silk_cannot_release: '還沒羽化，不能放飛',
+  silk_no_speedups: '沒有加速券了，去養蠶小店買吧',
+  silk_cannot_speedup: '已經是蛾了，不能再長大囉',
+  unknown_mail: '找不到這封信',
+  mail_already_claimed: '這封信已經領過了',
+  no_mail_to_claim: '沒有可以領取的信',
 };
 
 export const SILK_ITEM_NAME: Record<SilkShopItem, string> = {
   egg: '蠶卵',
   premiumEgg: '精選蠶卵',
   leaf: '桑葉',
+  speedup: '加速券',
 };
 
 const INCOME_TEXT: Record<IncomeSource, (amount: string) => string> = {
   checkIn: (a) => `簽到成功，領到 ${a}`,
   resale: (a) => `賣出成功，入帳 ${a}`,
   silk: (a) => `賣給蠶農收購站，入帳 ${a}`,
+  mail: (a) => `郵件獎勵入帳 ${a}`,
 };
+
+/** 郵件附件的簡短描述，例如「$300」「桑葉 ×5」 */
+export function rewardText(r: MailReward): string {
+  switch (r.kind) {
+    case 'money':
+      return fmt(r.amount);
+    case 'coupon':
+      return `優惠券 滿 ${fmt(r.minSpend)} 折 ${fmt(r.discount)}`;
+    case 'silk':
+      return `${SILK_ITEM_NAME[r.item]} ×${r.qty}`;
+    case 'product':
+      return `${getProduct(r.productId)?.name ?? r.productId} ×${r.qty}`;
+  }
+}
 
 const breedName = (id: string) => getSilkBreed(id)?.name ?? id;
 const count = (uids: readonly number[]) => (uids.length > 1 ? ` ${uids.length} 隻` : '');
@@ -86,5 +107,11 @@ export function eventText(ev: GameEvent): string {
       return '蠶寶寶扭了扭，好像很喜歡';
     case 'silkReleased':
       return '蛾寶寶飛走了，掰掰～';
+    case 'mailReceived':
+      return `📮 收到 ${ev.count} 封新郵件`;
+    case 'mailClaimed': {
+      const rewards = getMailTemplate(ev.templateId)?.rewards ?? [];
+      return rewards.length > 0 ? `領取了：${rewards.map(rewardText).join('、')}` : '已讀取郵件';
+    }
   }
 }

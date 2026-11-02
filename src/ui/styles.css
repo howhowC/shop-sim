@@ -240,3 +240,13 @@ nav.tabs { border-top: 1px solid var(--line); }
 .foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding-block: 16px 32px; border-top: 1px solid var(--line); }
 .btn.small { padding: 4px 12px; font-size: 13px; }
 .btn.danger { background: var(--bad); color: #fff; }
+
+/* mailbox: letter cards with a stamp-like reward row */
+.mail-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.mail-card { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: var(--r); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.mail-card.claimed { border-left-color: var(--line); opacity: .7; }
+.mail-body { margin: 0; line-height: 1.6; }
+.mail-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.mail-foot .btn { margin-left: auto; }
+.mail-rewards { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.mail-rewards li { background: var(--surface-2); border: 1px dashed var(--kraft-dark); border-radius: 999px; padding: 2px 10px; font-size: 13px; }

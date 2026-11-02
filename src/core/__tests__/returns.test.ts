@@ -40,7 +40,8 @@ describe('到貨前取消', () => {
     const s = run(s0, { type: 'cancelOrderItem', orderId: order.id, productId: 'sticker' });
     expect(s.money).toBe(s0.money + refund);
     expect(s.orders[0].lines[1].cancelledQty).toBe(1);
-    expect(s.events).toEqual([{ type: 'refunded', kind: 'cancel', orderId: order.id, productId: 'sticker', amount: refund }]);
+    // 這也是第一筆訂單，所以後面會接一封里程碑信
+    expect(s.events[0]).toEqual({ type: 'refunded', kind: 'cancel', orderId: order.id, productId: 'sticker', amount: refund });
   });
 
   it('用了優惠券的訂單全部退光，退款總和剛好等於實付金額', () => {
@@ -130,7 +131,7 @@ describe('補差價（虛擬商品）', () => {
     const order = s.orders[0];
     s = run(s, ...times(order.deliveryDay - s.day, { type: 'nextDay' }), { type: 'unboxOrder', orderId: order.id });
     expect(s.inventory.map((it) => it.productId)).toEqual(['sticker']);
-    expect(s.events).toEqual([{ type: 'unboxed', orderId: order.id, productIds: ['sticker'] }]);
+    expect(s.events[0]).toEqual({ type: 'unboxed', orderId: order.id, productIds: ['sticker'] });
   });
 
   it('到貨前可以取消', () => {

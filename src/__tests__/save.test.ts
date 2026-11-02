@@ -88,7 +88,8 @@ describe('存檔', () => {
     const loaded = deserialize(JSON.stringify({ version: 3, savedAt: 0, state: v3State }))!;
     expect(loaded).not.toBeNull();
     expect(loaded.money).toBe(4321);
-    expect(loaded.silk).toEqual({ worms: [], leaves: 0, dex: {} });
+    // 之後的版本還會補上其他欄位（v6 的 speedups），這裡只檢查 v4 加的部分
+    expect(loaded.silk).toMatchObject({ worms: [], leaves: 0, dex: {} });
   });
 
   it('v4 存檔轉換成 v5 時，房間裡的補差價會被移除，其他物品保留', () => {
@@ -102,6 +103,17 @@ describe('存檔', () => {
     };
     const loaded = deserialize(JSON.stringify({ version: 4, savedAt: 0, state: v4State }))!;
     expect(loaded.inventory.map((it) => it.productId)).toEqual(['sticker']);
+  });
+
+  it('v5 存檔轉換成 v6 後有空的信箱和加速券欄位，養蠶進度保留', () => {
+    const { mail: _mail, ...rest } = createInitialState(1);
+    const { speedups: _sp, ...silk } = rest.silk;
+    const v5State = { ...rest, silk: { ...silk, leaves: 7 } };
+    const loaded = deserialize(JSON.stringify({ version: 5, savedAt: 0, state: v5State }))!;
+    expect(loaded).not.toBeNull();
+    expect(loaded.mail).toEqual({ inbox: [], delivered: [], nextMailNo: 1 });
+    expect(loaded.silk.speedups).toBe(0);
+    expect(loaded.silk.leaves).toBe(7);
   });
 
   it('存檔裡沒有新商品的價格時，讀檔會補上', () => {

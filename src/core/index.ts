@@ -15,7 +15,9 @@ export {
   SILK_CAPACITY,
   SILK_MAX_AFFECTION,
   SILK_PRICES,
+  MAIL_KEEP_CLAIMED,
   SILK_STAGE_COCOON,
   SILK_STAGE_EGG,
   SILK_STAGE_MOTH,
 } from './config';
+export { getMailTemplate, unclaimedCount } from './mail';

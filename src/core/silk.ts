@@ -41,7 +41,7 @@ export function allSilkBreeds(): readonly SilkBreed[] {
 }
 
 export function createSilkState(): SilkState {
-  return { worms: [], leaves: 0, dex: {} };
+  return { worms: [], leaves: 0, speedups: 0, dex: {} };
 }
 
 export const isLarva = (w: Silkworm): boolean => w.stage >= 1 && w.stage <= SILK_STAGE_LAST_LARVA;
@@ -59,39 +59,61 @@ export function readyToGrow(w: Silkworm, today: string): boolean {
   return w.fedOn !== null && w.fedOn >= w.stageSince && w.fedOn < today;
 }
 
+type GrowthKind = 'hatched' | 'grew' | 'cocooned' | 'emerged';
+
+/** 讓一隻蠶升一階並更新圖鑑（自然成長和加速券共用）；回傳新的蠶、圖鑑和這次是哪一種成長 */
+function advanceWorm(
+  w: Silkworm,
+  dex: SilkState['dex'],
+  today: string,
+): { worm: Silkworm; dex: SilkState['dex']; kind: GrowthKind } {
+  const stage = w.stage + 1;
+  const entry = dex[w.breed] ?? { hatched: false, moth: false };
+  const worm = { ...w, stage, stageSince: today };
+  if (stage === 1) return { worm, dex: { ...dex, [w.breed]: { ...entry, hatched: true } }, kind: 'hatched' };
+  if (stage === SILK_STAGE_COCOON) return { worm, dex, kind: 'cocooned' };
+  if (stage === SILK_STAGE_MOTH) return { worm, dex: { ...dex, [w.breed]: { ...entry, moth: true } }, kind: 'emerged' };
+  return { worm, dex, kind: 'grew' };
+}
+
+/** 把一批成長結果轉成事件；孵化每隻各一則（要顯示品種），其他同類合併成一則 */
+function growthEvents(grown: readonly { worm: Silkworm; kind: GrowthKind }[]): GameEvent[] {
+  const events: GameEvent[] = [];
+  const uids = (kind: GrowthKind) => grown.filter((g) => g.kind === kind).map((g) => g.worm.uid);
+  for (const g of grown) if (g.kind === 'hatched') events.push({ type: 'silkHatched', uid: g.worm.uid, breed: g.worm.breed });
+  if (uids('grew').length > 0) events.push({ type: 'silkGrew', uids: uids('grew') });
+  if (uids('cocooned').length > 0) events.push({ type: 'silkCocooned', uids: uids('cocooned') });
+  if (uids('emerged').length > 0) events.push({ type: 'silkEmerged', uids: uids('emerged') });
+  return events;
+}
+
 /** 依今天的日期讓所有符合條件的蠶升一階，並更新圖鑑 */
 export function syncSilk(state: GameState, today: string): SilkResult {
-  const events: GameEvent[] = [];
-  const grew: number[] = [];
-  const cocooned: number[] = [];
-  const emerged: number[] = [];
-  const dex = { ...state.silk.dex };
-  let changed = false;
-
+  let dex = state.silk.dex;
+  const grown: { worm: Silkworm; kind: GrowthKind }[] = [];
   const worms = state.silk.worms.map((w) => {
     if (!readyToGrow(w, today)) return w;
-    changed = true;
-    const stage = w.stage + 1;
-    const entry = dex[w.breed] ?? { hatched: false, moth: false };
-    if (stage === 1) {
-      dex[w.breed] = { ...entry, hatched: true };
-      events.push({ type: 'silkHatched', uid: w.uid, breed: w.breed });
-    } else if (stage === SILK_STAGE_COCOON) {
-      cocooned.push(w.uid);
-    } else if (stage === SILK_STAGE_MOTH) {
-      dex[w.breed] = { ...entry, moth: true };
-      emerged.push(w.uid);
-    } else {
-      grew.push(w.uid);
-    }
-    return { ...w, stage, stageSince: today };
+    const r = advanceWorm(w, dex, today);
+    dex = r.dex;
+    grown.push(r);
+    return r.worm;
   });
+  if (grown.length === 0) return { state, events: [] };
+  return { state: { ...state, silk: { ...state.silk, worms, dex } }, events: growthEvents(grown) };
+}
 
-  if (!changed) return { state, events: [] };
-  if (grew.length > 0) events.push({ type: 'silkGrew', uids: grew });
-  if (cocooned.length > 0) events.push({ type: 'silkCocooned', uids: cocooned });
-  if (emerged.length > 0) events.push({ type: 'silkEmerged', uids: emerged });
-  return { state: { ...state, silk: { ...state.silk, worms, dex } }, events };
+/** 用一張加速券讓一隻蠶立刻升一階（不用餵食、不限次數；蛾不能再長） */
+export function speedupSilkworm(state: GameState, uid: number, today: string): SilkResult {
+  const w = findSilkworm(state, uid);
+  if (!w) return rejected(state, 'silk_unknown');
+  if (w.stage >= SILK_STAGE_MOTH) return rejected(state, 'silk_cannot_speedup');
+  if (state.silk.speedups <= 0) return rejected(state, 'silk_no_speedups');
+  const r = advanceWorm(w, state.silk.dex, today);
+  const next = updateWorm(state, r.worm);
+  return {
+    state: { ...next, silk: { ...next.silk, dex: r.dex, speedups: next.silk.speedups - 1 } },
+    events: growthEvents([r]),
+  };
 }
 
 const RARITIES: readonly SilkRarity[] = ['common', 'uncommon', 'rare', 'legendary'];
@@ -113,26 +135,13 @@ export const rejected = (state: GameState, reason: RejectReason): SilkResult => 
   events: [{ type: 'rejected', reason }],
 });
 
-export function buySilk(state: GameState, item: SilkShopItem, qty: number, today: string): SilkResult {
-  if (!(item in SILK_PRICES)) return rejected(state, 'silk_unknown_item');
-  const n = Math.floor(qty);
-  if (!(n >= 1)) return rejected(state, 'silk_unknown_item');
-  const total = SILK_PRICES[item] * n;
-  if (total > state.money) return rejected(state, 'insufficient_funds');
-
-  const bought = { type: 'silkBought', item, qty: n, total } as const;
-  if (item === 'leaf') {
-    return {
-      state: { ...state, money: state.money - total, silk: { ...state.silk, leaves: state.silk.leaves + n } },
-      events: [bought],
-    };
-  }
-
+/** 放 n 顆卵進飼養盒（買卵和郵件共用）；放不下就整批拒絕。不扣錢。 */
+export function addEggs(state: GameState, kind: SilkEggKind, n: number, today: string): SilkResult {
   if (state.silk.worms.length + n > SILK_CAPACITY) return rejected(state, 'silk_capacity_full');
   const rng = createRng(state.rngState);
   const eggs: Silkworm[] = Array.from({ length: n }, (_, i) => ({
     uid: state.nextUid + i,
-    breed: rollBreed(item, rng),
+    breed: rollBreed(kind, rng),
     stage: SILK_STAGE_EGG,
     stageSince: today,
     fedOn: null,
@@ -142,13 +151,34 @@ export function buySilk(state: GameState, item: SilkShopItem, qty: number, today
   return {
     state: {
       ...state,
-      money: state.money - total,
       rngState: rng.state(),
       nextUid: state.nextUid + n,
       silk: { ...state.silk, worms: [...state.silk.worms, ...eggs] },
     },
-    events: [bought],
+    events: [],
   };
+}
+
+/** 增加桑葉或加速券（買東西和郵件共用） */
+export function addSupplies(state: GameState, item: 'leaf' | 'speedup', n: number): GameState {
+  const field = item === 'leaf' ? 'leaves' : 'speedups';
+  return { ...state, silk: { ...state.silk, [field]: state.silk[field] + n } };
+}
+
+export function buySilk(state: GameState, item: SilkShopItem, qty: number, today: string): SilkResult {
+  if (!(item in SILK_PRICES)) return rejected(state, 'silk_unknown_item');
+  const n = Math.floor(qty);
+  if (!(n >= 1)) return rejected(state, 'silk_unknown_item');
+  const total = SILK_PRICES[item] * n;
+  if (total > state.money) return rejected(state, 'insufficient_funds');
+
+  const bought: GameEvent = { type: 'silkBought', item, qty: n, total };
+  const paid = { ...state, money: state.money - total };
+  if (item === 'leaf' || item === 'speedup') return { state: addSupplies(paid, item, n), events: [bought] };
+
+  const r = addEggs(paid, item, n, today);
+  if (r.events.length > 0) return rejected(state, 'silk_capacity_full');
+  return { state: r.state, events: [bought] };
 }
 
 function updateWorm(state: GameState, w: Silkworm): GameState {

@@ -5,14 +5,16 @@ import { fmt } from './format';
 interface Props {
   state: GameState;
   cartCount: number;
+  mailCount: number;
   query: string;
   onQuery: (q: string) => void;
   onCart: () => void;
+  onMail: () => void;
   onNextDay: () => void;
   children: ReactNode;
 }
 
-export function Header({ state, cartCount, query, onQuery, onCart, onNextDay, children }: Props) {
+export function Header({ state, cartCount, mailCount, query, onQuery, onCart, onMail, onNextDay, children }: Props) {
   return (
     <header className="top">
       <div className="wrap top-row">
@@ -36,6 +38,10 @@ export function Header({ state, cartCount, query, onQuery, onCart, onNextDay, ch
           <span className="pill">
             錢包 <span className="num">{fmt(state.money)}</span>
           </span>
+          <button className="btn ghost cartbtn" onClick={onMail} aria-label={`郵件，${mailCount} 封未領取`}>
+            📮
+            {mailCount > 0 && <span className="badge">{mailCount}</span>}
+          </button>
           <button className="btn ghost cartbtn" onClick={onCart}>
             購物車
             {cartCount > 0 && <span className="badge">{cartCount}</span>}
