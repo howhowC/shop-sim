@@ -116,6 +116,13 @@ describe('存檔', () => {
     expect(loaded.silk.leaves).toBe(7);
   });
 
+  it('v6 存檔轉換成 v7 後有輪盤資料', () => {
+    const { roulette: _r, ...v6State } = { ...createInitialState(1), money: 999 };
+    const loaded = deserialize(JSON.stringify({ version: 6, savedAt: 0, state: v6State }))!;
+    expect(loaded.money).toBe(999);
+    expect(loaded.roulette).toEqual({ date: null, spinsToday: 0, lastPrizeId: null, totalSpins: 0 });
+  });
+
   it('存檔裡沒有新商品的價格時，讀檔會補上', () => {
     const s = createInitialState(1);
     const { silkworm: _p, ...prices } = s.prices;

@@ -21,3 +21,5 @@ export {
   SILK_STAGE_MOTH,
 } from './config';
 export { getMailTemplate, unclaimedCount } from './mail';
+export { allRoulettePrizes, prizeChance, prizeValue, spinsLeft } from './roulette';
+export { ROULETTE_DAILY_SPINS, ROULETTE_PRICE } from './config';

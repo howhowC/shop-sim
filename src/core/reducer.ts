@@ -9,6 +9,7 @@ import { claimAllMail, claimMail, createMailState, deliverMilestones, rollRandom
 import { currentPrice, maybeDropCoupon, rollFlashSale, rollPrices } from './market';
 import { activeQty, formatOrderId, getOrderStatus, isOrderCancelled, refundForOne, returnDaysLeft, shippedQty } from './orders';
 import { createRng } from './rng';
+import { createRouletteState, spinRoulette } from './roulette';
 import { buySilk, createSilkState, feedSilkworm, petSilkworm, releaseMoth, speedupSilkworm, syncSilk, type SilkResult } from './silk';
 import type { Coupon, GameEvent, GameState, Money, Order, OrderLine, RejectReason } from './types';
 
@@ -36,6 +37,7 @@ export function createInitialState(seed: number): GameState {
     checkIn: { lastDate: null, streak: 0 },
     silk: createSilkState(),
     mail: createMailState(),
+    roulette: createRouletteState(),
     nextOrderNo: 1,
     nextUid: 1,
     rngState: rng.state(),
@@ -255,5 +257,7 @@ function applyAction(state: GameState, action: Action): GameState {
       return withEvents(claimMail(state, action.mailId, action.today));
     case 'claimAllMail':
       return withEvents(claimAllMail(state, action.today));
+    case 'spinRoulette':
+      return withEvents(spinRoulette(state, action.today));
   }
 }

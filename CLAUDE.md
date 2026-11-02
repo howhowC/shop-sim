@@ -1,6 +1,6 @@
 # shop-sim — 網購模擬器
 
-讓玩家滿足網購慾望的網頁遊戲：逛商城、下單、等到貨、開箱、收藏、轉賣、每日簽到領零用錢、收郵件領禮物。
+讓玩家滿足網購慾望的網頁遊戲：逛商城、下單、等到貨、開箱、收藏、轉賣、每日簽到領零用錢、收郵件領禮物、轉幸運輪盤。
 目前只有買家模式＋養蠶小遊戲；之後可能加入賣家模式、更多小遊戲、購物節大促、排行榜。
 
 ## 指令
@@ -29,6 +29,7 @@ src/
     orders.ts           物流狀態（由日期推算）、取消與退貨的退款計算（優惠券依比例分攤）
     inventory.ts        玩家擁有的物品
     silk.ts             養蠶小遊戲：買卵、餵食、摸摸、依現實日期成長（syncSilk）、加速券、放飛
+    roulette.ts         幸運輪盤：每天 3 次（現實日期）、抽獎、發獎（飼養盒滿了改寄信箱）
     mail.ts             郵件：公告信、隨機來信、里程碑來信（reducer 每個成功的 action 後檢查）、領取附件
     income/             收入來源（checkin.ts 每日簽到、resale.ts 轉賣、silk.ts 賣蠶繭）；都透過 earn() 入帳
     catalog.ts          查詢商品資料
@@ -38,6 +39,7 @@ src/
   data/products.ts      商品清單（虛構品牌）
   data/silkBreeds.ts    蠶寶寶品種（抽中機率由 rarity 決定）
   data/mail.ts          郵件內容：公告信、隨機信、里程碑信
+  data/roulette.ts      輪盤獎品與權重（每項價值必須 ≥ ROULETTE_PRICE，測試會檢查）
   save.ts               存檔／讀檔（唯一碰 localStorage 的地方）、存檔版本與轉換
   __tests__/            core 以外的測試（目前是 save.test.ts）
   ui/                   React 畫面

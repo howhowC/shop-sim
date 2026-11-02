@@ -39,6 +39,7 @@ const REJECT_TEXT: Record<RejectReason, string> = {
   unknown_mail: '找不到這封信',
   mail_already_claimed: '這封信已經領過了',
   no_mail_to_claim: '沒有可以領取的信',
+  roulette_no_spins_left: '今天的 3 次已經抽完了，明天再來',
 };
 
 export const SILK_ITEM_NAME: Record<SilkShopItem, string> = {
@@ -109,6 +110,9 @@ export function eventText(ev: GameEvent): string {
       return '蛾寶寶飛走了，掰掰～';
     case 'mailReceived':
       return `📮 收到 ${ev.count} 封新郵件`;
+    case 'rouletteWon':
+      // 輪盤停下來之後由 RouletteView 自己顯示結果，這裡回傳空字串讓 App 不要先跳通知
+      return '';
     case 'mailClaimed': {
       const rewards = getMailTemplate(ev.templateId)?.rewards ?? [];
       return rewards.length > 0 ? `領取了：${rewards.map(rewardText).join('、')}` : '已讀取郵件';

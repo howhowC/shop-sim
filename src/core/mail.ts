@@ -2,6 +2,7 @@
 // 信件文字在 data/mail.ts；存檔只記 templateId。
 
 import { ANNOUNCEMENTS, MILESTONE_MAIL, RANDOM_MAIL } from '../data/mail';
+import { ROULETTE_PRIZES } from '../data/roulette';
 import { getProduct } from './catalog';
 import { MAIL_KEEP_CLAIMED, MAIL_RANDOM_CHANCE } from './config';
 import { earn } from './income/earn';
@@ -9,7 +10,10 @@ import type { Rng } from './rng';
 import { addEggs, addSupplies, rejected, type SilkResult } from './silk';
 import type { GameEvent, GameState, Mail, MailState, MailTemplate, MilestoneCondition, OwnedItem } from './types';
 
-const templates = new Map<string, MailTemplate>([...ANNOUNCEMENTS, ...RANDOM_MAIL, ...MILESTONE_MAIL].map((t) => [t.id, t]));
+// 輪盤獎品也是信件模板：飼養盒放不下時改寄到信箱
+const templates = new Map<string, MailTemplate>(
+  [...ANNOUNCEMENTS, ...RANDOM_MAIL, ...MILESTONE_MAIL, ...ROULETTE_PRIZES].map((t) => [t.id, t]),
+);
 
 export function getMailTemplate(id: string): MailTemplate | undefined {
   return templates.get(id);
@@ -41,6 +45,11 @@ function pruneClaimed(inbox: readonly Mail[]): Mail[] {
   const claimed = inbox.filter((m) => m.claimed);
   const drop = new Set(claimed.slice(0, Math.max(0, claimed.length - MAIL_KEEP_CLAIMED)).map((m) => m.id));
   return inbox.filter((m) => !drop.has(m.id));
+}
+
+/** 寄一封信（不記進 delivered，可以重複寄）；給輪盤等其他功能用 */
+export function sendMail(state: GameState, templateId: string): SilkResult {
+  return deliver(state, [templateId], false);
 }
 
 /** 寄出開放日期已到、還沒寄過的公告信 */
@@ -79,8 +88,11 @@ export function deliverMilestones(state: GameState): GameState {
   return r.events.length === 0 ? state : { ...r.state, events: [...state.events, ...r.events] };
 }
 
-/** 把一封信的附件全部發給玩家；有一項發不出去（飼養盒滿了）就整封拒絕，信留在信箱 */
-function giveRewards(state: GameState, template: MailTemplate, mailId: string, today: string): SilkResult {
+/**
+ * 把附件全部發給玩家（郵件和輪盤共用）；有一項發不出去（飼養盒滿了）就全部不發，回傳拒絕事件。
+ * sourceId 用來產生優惠券 id，要在整個遊戲中唯一。
+ */
+export function giveRewards(state: GameState, template: MailTemplate, sourceId: string, today: string): SilkResult {
   let s = state;
   for (const [i, r] of template.rewards.entries()) {
     switch (r.kind) {
@@ -88,7 +100,7 @@ function giveRewards(state: GameState, template: MailTemplate, mailId: string, t
         s = earn(s, 'mail', r.amount).state;
         break;
       case 'coupon':
-        s = { ...s, coupons: [...s.coupons, { id: `${mailId}-${i}`, minSpend: r.minSpend, discount: r.discount, expiresDay: s.day + r.validDays - 1 }] };
+        s = { ...s, coupons: [...s.coupons, { id: `${sourceId}-${i}`, minSpend: r.minSpend, discount: r.discount, expiresDay: s.day + r.validDays - 1 }] };
         break;
       case 'silk':
         if (r.item === 'leaf' || r.item === 'speedup') {

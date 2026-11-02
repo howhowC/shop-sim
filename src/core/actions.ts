@@ -26,4 +26,6 @@ export type Action =
   // ── 郵件：today 是當地現實日期（公告信依它寄出、信裡的蠶卵用它當放進飼養盒的日期）──
   | { type: 'mailSync'; today: string }
   | { type: 'claimMail'; mailId: string; today: string }
-  | { type: 'claimAllMail'; today: string };
+  | { type: 'claimAllMail'; today: string }
+  /** 幸運輪盤抽一次；today 用來計算每天的次數 */
+  | { type: 'spinRoulette'; today: string };

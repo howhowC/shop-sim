@@ -168,6 +168,27 @@ export interface MilestoneTemplate extends MailTemplate {
   condition: MilestoneCondition;
 }
 
+/** 輪盤獎品；同時也是一封信的模板（飼養盒放不下時改寄到信箱） */
+export interface RoulettePrize extends MailTemplate {
+  /** 輪盤上顯示的短名稱和圖示 */
+  label: string;
+  icon: string;
+  /** 抽中權重（全部加總後換算機率） */
+  weight: number;
+}
+
+/** 幸運輪盤；每天的次數依現實日期計算 */
+export interface RouletteState {
+  /** 最近一次抽的當地日期 'YYYY-MM-DD' */
+  date: string | null;
+  /** date 那天已經抽了幾次 */
+  spinsToday: number;
+  /** 最近一次抽中的獎品 id（UI 用來決定輪盤停在哪一格） */
+  lastPrizeId: string | null;
+  /** 累計抽獎次數（UI 用來偵測「剛抽了一次」） */
+  totalSpins: number;
+}
+
 export interface Mail {
   id: string;
   templateId: string;
@@ -211,7 +232,8 @@ export type RejectReason =
   | 'silk_cannot_speedup'
   | 'unknown_mail'
   | 'mail_already_claimed'
-  | 'no_mail_to_claim';
+  | 'no_mail_to_claim'
+  | 'roulette_no_spins_left';
 
 export type GameEvent =
   | { type: 'orderPlaced'; orderId: string; total: Money }
@@ -231,7 +253,9 @@ export type GameEvent =
   | { type: 'silkPetted'; uid: number }
   | { type: 'silkReleased'; uid: number }
   | { type: 'mailReceived'; count: number }
-  | { type: 'mailClaimed'; mailId: string; templateId: string };
+  | { type: 'mailClaimed'; mailId: string; templateId: string }
+  /** toMail：飼養盒放不下，獎品改寄到信箱 */
+  | { type: 'rouletteWon'; prizeId: string; toMail: boolean };
 
 export interface GameState {
   day: number;
@@ -250,6 +274,7 @@ export interface GameState {
   checkIn: CheckInState;
   silk: SilkState;
   mail: MailState;
+  roulette: RouletteState;
   nextOrderNo: number;
   nextUid: number;
   /** 最近一次 action 產生的事件，給 UI 顯示通知用 */

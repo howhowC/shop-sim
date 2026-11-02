@@ -82,3 +82,9 @@ export const SILK_EGG_WEIGHTS = {
 export const MAIL_RANDOM_CHANCE = 0.15;
 /** 信箱最多保留幾封「已領取」的信，超過時刪掉最舊的（沒領的信不會被刪） */
 export const MAIL_KEEP_CLAIMED = 30;
+
+// ── 幸運輪盤（每天的次數依現實日期計算）──
+/** 抽一次的價格（元）；每個獎品的價值都不能低於這個數（有測試檢查） */
+export const ROULETTE_PRICE = 100;
+/** 每天可以抽幾次 */
+export const ROULETTE_DAILY_SPINS = 3;

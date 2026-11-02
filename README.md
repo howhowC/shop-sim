@@ -16,6 +16,7 @@ A browser game about the joy of online shopping: browse a store whose prices cha
 - **My room**: shelves that fill up as your collection grows.
 - **Earning money**: a daily check-in tied to the real-world date, with bigger rewards for longer streaks; a second-hand market where limited editions gain value the longer you hold them; a silkworm-raising mini-game (see below).
 - **Mailbox**: gifts arrive now and then — developer announcements unlocked by real-world date, random letters as days pass, and milestone rewards (first order, first moth, collection-book progress…). Attachments can be money, coupons, silkworm supplies or items. Everything is generated locally, with no backend.
+- **Lucky roulette**: $100 a spin, three spins per real-world day. Every prize is worth at least $100, and the odds are shown on the page.
 - **Auto-save**: progress is saved in the browser after every action, with versioned save files.
 - Light and dark themes, phone-friendly layout.
 

@@ -16,6 +16,7 @@ import { ShopView } from './views/ShopView';
 import { CheckInView } from './views/CheckInView';
 import { SilkView } from './views/SilkView';
 import { MailView } from './views/MailView';
+import { RouletteView } from './views/RouletteView';
 
 export default function App() {
   // 有存檔就接著玩，沒有就開新遊戲
@@ -36,7 +37,7 @@ export default function App() {
   const act = (a: Action) => {
     const next = reducer(state, a);
     setState(next);
-    const messages = next.events.map(eventText);
+    const messages = next.events.map(eventText).filter((m) => m !== '');
     // 每個動作後自動存檔；失敗時（例如無痕模式）只提醒一次
     if (!saveGame(next) && !saveWarned.current) {
       saveWarned.current = true;
@@ -106,6 +107,7 @@ export default function App() {
         {tab === 'checkin' && <CheckInView state={state} act={act} onSilk={() => setTab('silk')} />}
         {tab === 'silk' && <SilkView state={state} act={act} />}
         {tab === 'mail' && <MailView state={state} act={act} />}
+        {tab === 'roulette' && <RouletteView state={state} act={act} />}
       </main>
 
       <footer className="wrap foot">

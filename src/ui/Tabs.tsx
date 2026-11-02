@@ -1,4 +1,4 @@
-export type Tab = 'shop' | 'cart' | 'orders' | 'room' | 'resale' | 'checkin' | 'silk' | 'mail';
+export type Tab = 'shop' | 'cart' | 'orders' | 'room' | 'resale' | 'checkin' | 'silk' | 'roulette' | 'mail';
 
 const TABS: readonly [Tab, string][] = [
   ['shop', '商城'],
@@ -8,6 +8,7 @@ const TABS: readonly [Tab, string][] = [
   ['resale', '二手市場'],
   ['checkin', '每日簽到'],
   ['silk', '養蠶'],
+  ['roulette', '幸運輪盤'],
   ['mail', '郵件'],
 ];
 
