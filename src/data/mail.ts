@@ -7,22 +7,14 @@ import type { AnnouncementTemplate, MailTemplate, MilestoneTemplate } from '../c
 export const ANNOUNCEMENTS: readonly AnnouncementTemplate[] = [
   {
     id: 'welcome-mailbox',
-    availableFrom: '2026-11-02',
+    availableFrom: '2026-11-04',
     from: '鈺鈺商城',
-    title: '郵件功能上線囉！',
-    body: '以後有活動、禮物或驚喜，都會寄到這個信箱。先送你一點零用錢和兩張蠶寶寶加速券，祝你購物愉快！',
+    title: '好禮大放送!',
+    body: '送你一點零用錢和五張蠶寶寶加速券，祝你購物愉快！',
     rewards: [
       { kind: 'money', amount: 5000 },
-      { kind: 'silk', item: 'speedup', qty: 2 },
+      { kind: 'silk', item: 'speedup', qty: 5 },
     ],
-  },
-  {
-    id: 'roulette-launch',
-    availableFrom: '2026-11-02',
-    from: '鈺鈺商城',
-    title: '幸運輪盤開張囉！',
-    body: '全新的「幸運輪盤」上線了！每次 $100，每天可以抽 3 次，每個獎品都值回票價，還有機會抽中 $500 大獎。送你 $1,000 當作開張紅包，快去試試手氣吧！',
-    rewards: [{ kind: 'money', amount: 1000 }],
   },
 ];
 
