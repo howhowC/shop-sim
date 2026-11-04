@@ -100,7 +100,19 @@ export function giveRewards(state: GameState, template: MailTemplate, sourceId: 
         s = earn(s, 'mail', r.amount).state;
         break;
       case 'coupon':
-        s = { ...s, coupons: [...s.coupons, { id: `${sourceId}-${i}`, minSpend: r.minSpend, discount: r.discount, expiresDay: s.day + r.validDays - 1 }] };
+        s = {
+          ...s,
+          coupons: [
+            ...s.coupons,
+            {
+              id: `${sourceId}-${i}`,
+              minSpend: r.minSpend,
+              discount: r.discount,
+              ...(r.percent !== undefined && { percent: r.percent }),
+              expiresDay: s.day + r.validDays - 1,
+            },
+          ],
+        };
         break;
       case 'silk':
       {

@@ -41,8 +41,11 @@ describe('郵件：公告信', () => {
     expect(s.mail.inbox.map((m) => m.templateId)).toContain(firstAnnouncement.id);
     expect(s.events).toContainEqual({ type: 'mailReceived', count: s.mail.inbox.length });
 
-    const again = run(s, { type: 'mailSync', today: TODAY });
-    expect(again.mail.inbox).toHaveLength(s.mail.inbox.length);
+    // 之後再同步：開放日期較晚的信會補寄，但每封都只會出現一次
+    const later = run(s, { type: 'mailSync', today: TODAY }, { type: 'mailSync', today: TODAY });
+    const ids = later.mail.inbox.map((m) => m.templateId);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).toEqual(ANNOUNCEMENTS.map((a) => a.id));
   });
 });
 

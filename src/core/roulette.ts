@@ -29,14 +29,14 @@ export function prizeChance(prize: RoulettePrize): number {
   return prize.weight / total;
 }
 
-/** 獎品價值：金錢＝金額、優惠券＝折抵金額、養蠶用品＝小店價、商品＝基準價 */
+/** 獎品價值：金錢＝金額、優惠券＝折抵金額（打折券用「剛好達到門檻時折掉的金額」）、養蠶用品＝小店價、商品＝基準價 */
 export function prizeValue(prize: RoulettePrize): Money {
   return prize.rewards.reduce((sum, r) => {
     switch (r.kind) {
       case 'money':
         return sum + r.amount;
       case 'coupon':
-        return sum + r.discount;
+        return sum + (r.percent !== undefined ? Math.floor((r.minSpend * r.percent) / 100) : r.discount);
       case 'silk':
         return sum + SILK_PRICES[r.item] * r.qty;
       case 'product':

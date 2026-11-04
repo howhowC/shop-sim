@@ -1,5 +1,5 @@
 import type { Coupon, Money } from '../core';
-import { fmt } from './format';
+import { couponLabel, fmt } from './format';
 
 interface Props {
   /** 還沒過期的優惠券 */
@@ -28,7 +28,7 @@ export function CheckoutSummary({ coupons, couponId, onCoupon, subtotal, discoun
           return (
             <label className="coupon" key={c.id}>
               <input type="radio" name={name} checked={couponId === c.id} disabled={!reachable} onChange={() => onCoupon(c.id)} />
-              滿 {fmt(c.minSpend)} 折 {fmt(c.discount)}
+              {couponLabel(c)}
               <span className="small muted">{reachable ? `第 ${c.expiresDay} 天到期` : `還差 ${fmt(c.minSpend - subtotal)}`}</span>
             </label>
           );

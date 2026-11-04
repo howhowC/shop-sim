@@ -5,15 +5,37 @@ import type { AnnouncementTemplate, MailTemplate, MilestoneTemplate } from '../c
 
 /** 開發者公告／禮物信：availableFrom（當地現實日期）當天起，玩家打開遊戲就會收到，每封只寄一次 */
 export const ANNOUNCEMENTS: readonly AnnouncementTemplate[] = [
+  // ⚠️ 已經上線的信不要改 id、不要刪除：玩家存檔用 id 記錄寄過哪些信，改了內容也不會再寄一次。
+  //    要寄新的信，在最下面新增一筆、用沒用過的 id。
   {
     id: 'welcome-mailbox',
+    availableFrom: '2026-11-02',
+    from: '鈺鈺商城',
+    title: '郵件功能上線囉！',
+    body: '以後有活動、禮物或驚喜，都會寄到這個信箱。先送你一點零用錢和兩張蠶寶寶加速券，祝你購物愉快！',
+    rewards: [
+      { kind: 'money', amount: 5000 },
+      { kind: 'silk', item: 'speedup', qty: 2 },
+    ],
+  },
+  {
+    id: 'roulette-launch',
+    availableFrom: '2026-11-02',
+    from: '鈺鈺商城',
+    title: '幸運輪盤開張囉！',
+    body: '全新的「幸運輪盤」上線了！每次 $100，每天可以抽 3 次，每個獎品都值回票價，還有機會抽中 $500 大獎。送你 $1,000 當作開張紅包，快去試試手氣吧！',
+    rewards: [{ kind: 'money', amount: 1000 }],
+  },
+  {
+    id: 'gift-2026-11-04',
     availableFrom: '2026-11-04',
     from: '鈺鈺商城',
     title: '好禮大放送!',
-    body: '送你一點零用錢和五張蠶寶寶加速券，祝你購物愉快！',
+    body: '送你一點零用錢、五張蠶寶寶加速券，再加一張五折券，祝你購物愉快！',
     rewards: [
       { kind: 'money', amount: 5000 },
       { kind: 'silk', item: 'speedup', qty: 5 },
+      { kind: 'coupon', minSpend: 300, discount: 0, percent: 50, validDays: 7 },
     ],
   },
 ];

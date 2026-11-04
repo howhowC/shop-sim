@@ -19,10 +19,12 @@ export const FLASH_SALE_DISCOUNTS: readonly number[] = [20, 30, 40];
 export const COUPON_DROP_CHANCE = 0.35;
 /** 優惠券含當天在內可以使用的天數 */
 export const COUPON_LIFETIME_DAYS = 3;
-export const COUPON_TEMPLATES: readonly { minSpend: number; discount: number }[] = [
-  { minSpend: 300, discount: 50 },
-  { minSpend: 600, discount: 100 },
-  { minSpend: 1800, discount: 400 },
+/** 每天可能掉落的優惠券，掉落時平均挑一種。percent：打折券（50 = 打五折，沒有折抵上限），這時 discount 填 0 */
+export const COUPON_TEMPLATES: readonly { minSpend: number; discount: number; percent?: number }[] = [
+  { minSpend: 300, discount: 100 },
+  { minSpend: 600, discount: 150 },
+  { minSpend: 1800, discount: 600 },
+  { minSpend: 300, discount: 0, percent: 50 },
 ];
 
 // ── 物流 ──

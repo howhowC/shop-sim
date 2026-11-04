@@ -64,9 +64,10 @@ export function findUsableCoupon(state: GameState, couponId: string): Coupon | u
   return state.coupons.find((c) => c.id === couponId && c.expiresDay >= state.day);
 }
 
-/** 小計達到門檻才折抵；主商城和養蠶小店的購物車共用 */
+/** 小計達到門檻才折抵；打折券依小計的百分比（無條件捨去成整數元）。主商城和養蠶小店的購物車共用 */
 export function couponDiscount(subtotal: Money, coupon?: Coupon): Money {
-  return coupon && subtotal >= coupon.minSpend ? coupon.discount : 0;
+  if (!coupon || subtotal < coupon.minSpend) return 0;
+  return coupon.percent !== undefined ? Math.floor((subtotal * coupon.percent) / 100) : coupon.discount;
 }
 
 /** 實際售價：牌價再套用限時特價 */

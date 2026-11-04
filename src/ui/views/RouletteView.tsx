@@ -5,8 +5,8 @@ import { fmt, localDateString } from '../format';
 
 /** 轉盤動畫長度（毫秒）；CSS 的 transition 時間要一致 */
 const SPIN_MS = 3200;
-/** 每一格的底色（固定淺色，深色模式下文字也用深色） */
-const SECTOR_COLORS = ['#ffd6e0', '#ffe9b8', '#d4f0c9', '#cde4ff', '#e6d8ff', '#ffe0c7', '#c9f0ec', '#fff3b0'];
+/** 每一格的底色（固定淺色，深色模式下文字也用深色）；數量要和獎品數一樣多，不然頭尾兩格會同色又相鄰 */
+const SECTOR_COLORS = ['#ffd6e0', '#ffe9b8', '#d4f0c9', '#cde4ff', '#e6d8ff', '#ffe0c7', '#c9f0ec', '#fff3b0', '#f5d0f0'];
 
 /** 輪盤上角度 deg（從正上方順時針）、半徑 r 的點 */
 function point(deg: number, r: number): string {

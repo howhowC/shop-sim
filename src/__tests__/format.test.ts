@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { eventText, silkwormsLabel } from '../ui/format';
+import { couponLabel, eventText, silkwormsLabel } from '../ui/format';
 
 describe('通知文字：蠶寶寶的名字', () => {
   it('一群蠶的稱呼', () => {
@@ -17,5 +17,13 @@ describe('通知文字：蠶寶寶的名字', () => {
     expect(eventText({ type: 'silkReleased', uid: 1, name: '小白' })).toBe('小白飛走了，掰掰～');
     expect(eventText({ type: 'silkSold', uid: 1, name: '小白', amount: 160 })).toBe('和小白說再見，賣給蠶農收購站，入帳 $160');
     expect(eventText({ type: 'silkSold', uid: 1, name: null, amount: 160 })).toBe('賣給蠶農收購站，入帳 $160');
+  });
+});
+
+describe('通知文字：優惠券', () => {
+  it('固定金額券和打折券的說法', () => {
+    expect(couponLabel({ minSpend: 600, discount: 100 })).toBe('滿 $600 折 $100');
+    expect(couponLabel({ minSpend: 300, discount: 0, percent: 50 })).toBe('滿 $300 打 5 折');
+    expect(couponLabel({ minSpend: 300, discount: 0, percent: 25 })).toBe('滿 $300 打 7.5 折');
   });
 });

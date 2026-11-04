@@ -31,7 +31,10 @@ export interface FlashSale {
 export interface Coupon {
   id: string;
   minSpend: Money;
+  /** 固定折抵金額；打折券（有 percent）這裡是 0 */
   discount: Money;
+  /** 打折券：折掉小計的百分之幾（50 = 打五折），沒有上限；沒有這個欄位就是固定金額券 */
+  percent?: number;
   /** 這一天結束後失效 */
   expiresDay: number;
 }
@@ -145,7 +148,7 @@ export interface SilkState {
 export type MailReward =
   | { kind: 'money'; amount: Money }
   /** validDays：含領取當天在內可以使用的天數 */
-  | { kind: 'coupon'; minSpend: Money; discount: Money; validDays: number }
+  | { kind: 'coupon'; minSpend: Money; discount: Money; percent?: number; validDays: number }
   | { kind: 'silk'; item: SilkShopItem; qty: number }
   | { kind: 'product'; productId: ProductId; qty: number };
 

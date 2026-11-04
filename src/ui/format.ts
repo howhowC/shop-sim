@@ -3,6 +3,13 @@ import type { GameEvent, IncomeSource, MailReward, RejectReason, SilkShopItem } 
 
 export const fmt = (n: number): string => '$' + n.toLocaleString('zh-TW');
 
+/** 優惠券的說法：固定金額「滿 $600 折 $100」，打折券「滿 $300 打 5 折」（percent 50 → 5 折、30 → 7 折） */
+export function couponLabel(c: { minSpend: number; discount: number; percent?: number }): string {
+  if (c.percent === undefined) return `滿 ${fmt(c.minSpend)} 折 ${fmt(c.discount)}`;
+  const zhe = (100 - c.percent) / 10;
+  return `滿 ${fmt(c.minSpend)} 打 ${Number.isInteger(zhe) ? zhe : zhe.toFixed(1)} 折`;
+}
+
 /** 當地日期 'YYYY-MM-DD'，給每日簽到和養蠶用 */
 export function localDateString(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -66,7 +73,7 @@ export function rewardText(r: MailReward): string {
     case 'money':
       return fmt(r.amount);
     case 'coupon':
-      return `優惠券 滿 ${fmt(r.minSpend)} 折 ${fmt(r.discount)}`;
+      return `優惠券 ${couponLabel(r)}`;
     case 'silk':
       return `${SILK_ITEM_NAME[r.item]} ×${r.qty}`;
     case 'product':
@@ -103,7 +110,7 @@ export function eventText(ev: GameEvent): string {
     case 'income':
       return INCOME_TEXT[ev.source](fmt(ev.amount));
     case 'couponReceived':
-      return `獲得優惠券：滿 ${fmt(ev.coupon.minSpend)} 折 ${fmt(ev.coupon.discount)}`;
+      return `獲得優惠券：${couponLabel(ev.coupon)}`;
     case 'rejected':
       return REJECT_TEXT[ev.reason];
     case 'refunded':

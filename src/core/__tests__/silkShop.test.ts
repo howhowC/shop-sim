@@ -132,3 +132,31 @@ describe('主商城的養蠶用品', () => {
     expect(fixed.prevPrices.silkworm).toBe(getProduct('silkworm')!.basePrice);
   });
 });
+
+describe('打折券', () => {
+  const half: Coupon = { id: 'half', minSpend: 300, discount: 0, percent: 50, expiresDay: 99 };
+
+  it('主商城：折掉小計的一半，沒有上限', () => {
+    const s0 = run({ ...createInitialState(1), coupons: [half], money: 1_000_000 }, { type: 'addToCart', productId: 'silkworm', qty: 100 });
+    const s = run(s0, { type: 'checkout', couponId: 'half' });
+    expect(s.money).toBe(s0.money - 3000);
+  });
+
+  it('養蠶小店：一樣可以用，金額無條件捨去成整數', () => {
+    const s0 = run({ ...createInitialState(1), coupons: [half] }, { type: 'silkCartSet', item: 'leaf', qty: 31 });
+    expect(summarizeSilkCart(s0, half)).toMatchObject({ subtotal: 310, discount: 155, total: 155 });
+  });
+
+  it('沒達到門檻不能用', () => {
+    const s0 = run({ ...createInitialState(1), coupons: [half] }, { type: 'silkCartSet', item: 'leaf', qty: 29 });
+    const s = run(s0, { type: 'silkCheckout', couponId: 'half', today: TODAY });
+    expect(s.events).toEqual([{ type: 'rejected', reason: 'coupon_threshold_not_met' }]);
+  });
+
+  it('從郵件領到的打折券保留 percent', () => {
+    const s0 = createInitialState(1);
+    const withGift: GameState = { ...s0, mail: { ...s0.mail, inbox: [{ id: 'M9', templateId: 'gift-2026-11-04', receivedDay: 1, claimed: false }] } };
+    const s = run(withGift, { type: 'claimMail', mailId: 'M9' });
+    expect(s.coupons.at(-1)).toMatchObject({ minSpend: 300, percent: 50 });
+  });
+});
